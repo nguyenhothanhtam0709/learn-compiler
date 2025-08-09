@@ -1,6 +1,6 @@
 # Regular language
 
-A **regular grammar** (or **regular language**) is one that can be recognized by a finite automation - i.e., no memory beyond the current state is needed. This is what traditional regex-based lexers (like [Flex](<https://en.wikipedia.org/wiki/Flex_(lexical_analyser_generator)>)) can handle: fixed patterns, independent of context.  
+A **regular grammar** (or [**regular language**](https://en.wikipedia.org/wiki/Regular_language)) is one that can be recognized by a finite automation - i.e., no memory beyond the current state is needed. This is what traditional regex-based lexers (like [Flex](<https://en.wikipedia.org/wiki/Flex_(lexical_analyser_generator)>)) can handle: fixed patterns, independent of context.  
 Most programming languages (C, Java, Go) have regular lexical grammars - their tokenization can be done with regex-like rules plus a few modes. But Python and Haskell are **not regular**, they require **stateful lexing** because _layout is part of the lexical grammar_, not just the parser.
 
 ### What _not regular_ means
