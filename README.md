@@ -1,2 +1,3 @@
-# compiler-notes
-My compiler notes
+# Compiler notes
+
+My notes when learning about compiler/interpreter.
