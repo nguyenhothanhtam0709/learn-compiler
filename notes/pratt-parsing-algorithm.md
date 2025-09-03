@@ -18,8 +18,8 @@ For input
 - Start: parse `1` using prefix rule for numbers → AST node 1.
 - See `+`. Precedence = `TERM`.
 - Parse RHS with precedence higher than `TERM`.
-  - RHS begins with `2`. Prefix rule → node 2.
-  - Next token is `*`. Precedence = FACTOR (higher than `TERM`), so parse it.
-  - Parse RHS of `*`: number 3.
+  - RHS begins with `2`. Prefix rule → node `2`.
+  - Next token is `*`. Precedence = `FACTOR` (higher than `TERM`), so parse it.
+  - Parse RHS of `*`: number `3`.
   - Build AST (`2 * 3`).
 - Combine with `+`: (`1 + (2 * 3)`).
