@@ -23,3 +23,12 @@
 - Scalar replacement of aggregates
 - Dead code elimination
 - Loop unrolling
+
+### Some techniques to implement bytecode dispatching for bytecode interpreter
+- Switch dispatch: basic bytecode dispatching technique used in clox
+- Computed Goto / Direct Threading (Direct threaded code) / Jump table
+- Indirect Threading
+- Direct Call Threading
+- Superinstructions
+- Inline Threading / Replication
+- Token Threading (very old-school, Forth style)
