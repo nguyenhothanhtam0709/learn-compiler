@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "string": "cpp",
+    },
+    "maptz.regionfolder": {
+        "[cpp]": {
+            "foldStart": "; #region [NAME]", // text inserted when you type "Insert Fold Start"
+            "foldStartRegex": "\\/\\/\\<\\s*(.*)", // matches //< optionalName
+            "foldEnd": "; #endregion", // text inserted when you type "Insert Fold End"
+            "foldEndRegex": "\\/\\/\\>", // matches //>
+            "disableFolding": false,
+            "isFoldedByDefault": false
+        }
+    }
+}
