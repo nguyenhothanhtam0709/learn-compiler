@@ -32,3 +32,7 @@
 - Superinstructions
 - Inline Threading / Replication
 - Token Threading (very old-school, Forth style)
+
+### Parser
+- Pratt parser
+- Earley parser
