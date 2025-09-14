@@ -25,6 +25,7 @@
 - Loop unrolling
 
 ### Some techniques to implement bytecode dispatching for bytecode interpreter
+
 - Switch dispatch: basic bytecode dispatching technique used in clox
 - Computed Goto / Direct Threading (Direct threaded code) / Jump table
 - Indirect Threading
@@ -34,9 +35,17 @@
 - Token Threading (very old-school, Forth style)
 
 ### Parser
+
 - Pratt parser
 - Earley parser
 
 ### Garbage collector
+
 - Mark-Sweep gc
 - Tricolor abstraction
+- Incremental garbage collector
+- Stop-the-world GC
+- Reference counting
+- Cheney’s algorithm
+- Lisp 2 mark-compact algorithm
+- Generational garbage collection
