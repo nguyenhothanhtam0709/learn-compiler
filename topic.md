@@ -36,3 +36,7 @@
 ### Parser
 - Pratt parser
 - Earley parser
+
+### Garbage collector
+- Mark-Sweep gc
+- Tricolor abstraction
