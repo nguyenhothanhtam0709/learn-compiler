@@ -1,6 +1,10 @@
 #ifndef HYPERTK_AST_HPP
 #define HYPERTK_AST_HPP
 
+#include <string>
+#include <memory>
+#include <vector>
+
 namespace hypertk
 {
     namespace ast
@@ -32,11 +36,60 @@ namespace hypertk
             };
 
             template <typename R>
+            class VariableExpr : public Expr<R>
+            {
+                std::string Name;
+
+            public:
+                explicit VariableExpr(const std::string &Name) : Name(Name) {}
+                R accept(Visitor<R> &visitor) override
+                {
+                    return visitor.visitVariableExpr(*this);
+                }
+            };
+
+            template <typename R>
+            class BinaryExpr : public Expr<R>
+            {
+                char Op;
+                std::unique_ptr<Expr> LHS, RHS;
+
+            public:
+                BinaryExpr(char Op,
+                           std::unique_ptr<Expr> LHS,
+                           std::unique_ptr<Expr> RHS)
+                    : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+                R accept(Visitor<R> &visitor) override
+                {
+                    return visitor.visitBinaryExpr(*this);
+                }
+            };
+
+            template <typename R>
+            class CallExpr : public Expr<R>
+            {
+                std::string Callee;
+                std::vector<std::unique_ptr<Expr>> Args;
+
+            public:
+                CallExpr(const std::string &Callee,
+                         std::vector<std::unique_ptr<Expr>> Args)
+                    : Callee(Callee), Args(std::move(Args)) {}
+                R accept(Visitor<R> &visitor) override
+                {
+                    return visitor.visitCallExpr(*this);
+                }
+            };
+
+            template <typename R>
             class Visitor
             {
             public:
                 virtual ~Visitor() = default;
                 virtual R visitNumberExpr(NumberExpr<R> &expr) = 0;
+                virtual R visitVariableExpr(VariableExpr<R> &expr) = 0;
+                virtual R visitBinaryExpr(BinaryExpr<R> &expr) = 0;
+                virtual R visitCallExpr(CallExpr<R> &expr) = 0;
             };
         } // namespace expr
 
