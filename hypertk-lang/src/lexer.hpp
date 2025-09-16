@@ -1,0 +1,46 @@
+#ifndef HYPERTK_LEXER_HPP
+#define HYPERTK_LEXER_HPP
+
+#include <string>
+
+#include "token.hpp"
+
+namespace hypertk
+{
+    class Lexer
+    {
+    public:
+        explicit Lexer(const std::string &src);
+
+        /**
+         * @note Since C++17, compilers guarantee `Return Value Optimization (RVO)` in most cases.
+         */
+        Token nextToken();
+
+    private:
+        /** @brief Text source code */
+        const std::string src_;
+        int start_;
+        int current_;
+        int line_;
+
+        Token identifier();
+        Token number();
+
+        void skipWhitespaceAndComment() noexcept;
+
+        inline Token makeToken(TokenType type);
+        inline Token makeToken(TokenType type, const std::string &lexeme);
+        inline std::string makeLexeme();
+        inline Token errorToken(const std::string &msg);
+
+        bool match(char expected) noexcept;
+        inline char advance() noexcept;
+        inline char peek() const noexcept;
+        inline char peekNext() const noexcept;
+        inline bool isAtEnd() const noexcept;
+        inline bool nextIsEnd() const noexcept;
+    };
+}
+
+#endif
