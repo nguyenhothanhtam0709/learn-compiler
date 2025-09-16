@@ -42,7 +42,23 @@ namespace hypertk
 
         namespace stmt
         {
+            template <typename R>
+            class Visitor;
 
+            template <typename R>
+            class Stmt
+            {
+            public:
+                virtual ~Stmt() = default;
+                virtual R accept(Visitor<R> &visitor) = 0;
+            };
+
+            template <typename R>
+            class Visitor
+            {
+            public:
+                virtual ~Visitor() = default;
+            };
         } // namespace stmt
     } // namespace ast
 } // namespace hypertk
