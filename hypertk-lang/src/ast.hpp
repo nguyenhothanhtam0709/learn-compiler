@@ -2,117 +2,106 @@
 #define HYPERTK_AST_HPP
 
 #include <string>
-#include <memory>
 #include <vector>
+#include <variant>
+#include <memory>
 
 namespace hypertk
 {
     namespace ast
     {
+        /** @brief Base ast node */
+        struct Node
+        {
+            Node() = default;
+            virtual ~Node() = default;
+
+            Node(Node &&other) noexcept = default;
+            Node &operator=(Node &&other) noexcept = default;
+
+            explicit Node(const Node &) = delete;
+            Node &operator=(const Node &) = delete;
+        };
+
+        /** @brief Expression ast */
         namespace expr
         {
-            template <typename R>
-            class Visitor;
+            struct Number;
+            struct Variable;
+            using Expr = std::variant<Number, Variable>;
 
-            template <typename R>
-            class Expr
-            {
-            public:
-                virtual ~Expr() = default;
-                virtual R accept(Visitor<R> &visitor) = 0;
-            };
-
-            template <typename R>
-            class NumberExpr : public Expr<R>
+            struct Number : Node
             {
                 double Val;
 
-            public:
-                explicit NumberExpr(double Val) : Val(Val) {}
-                R accept(Visitor<R> &visitor) override
-                {
-                    return visitor.visitNumberExpr(*this);
-                }
+                explicit Number(double val) : Val{val} {}
             };
 
-            template <typename R>
-            class VariableExpr : public Expr<R>
+            struct Variable : Node
             {
                 std::string Name;
 
-            public:
-                explicit VariableExpr(const std::string &Name) : Name(Name) {}
-                R accept(Visitor<R> &visitor) override
-                {
-                    return visitor.visitVariableExpr(*this);
-                }
-            };
-
-            template <typename R>
-            class BinaryExpr : public Expr<R>
-            {
-                char Op;
-                std::unique_ptr<Expr> LHS, RHS;
-
-            public:
-                BinaryExpr(char Op,
-                           std::unique_ptr<Expr> LHS,
-                           std::unique_ptr<Expr> RHS)
-                    : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
-                R accept(Visitor<R> &visitor) override
-                {
-                    return visitor.visitBinaryExpr(*this);
-                }
-            };
-
-            template <typename R>
-            class CallExpr : public Expr<R>
-            {
-                std::string Callee;
-                std::vector<std::unique_ptr<Expr>> Args;
-
-            public:
-                CallExpr(const std::string &Callee,
-                         std::vector<std::unique_ptr<Expr>> Args)
-                    : Callee(Callee), Args(std::move(Args)) {}
-                R accept(Visitor<R> &visitor) override
-                {
-                    return visitor.visitCallExpr(*this);
-                }
+                explicit Variable(const std::string &name) : Name{name} {}
             };
 
             template <typename R>
             class Visitor
             {
             public:
-                virtual ~Visitor() = default;
-                virtual R visitNumberExpr(NumberExpr<R> &expr) = 0;
-                virtual R visitVariableExpr(VariableExpr<R> &expr) = 0;
-                virtual R visitBinaryExpr(BinaryExpr<R> &expr) = 0;
-                virtual R visitCallExpr(CallExpr<R> &expr) = 0;
+                /** @brief Visit expression node */
+                R visit(const Expr &expr)
+                {
+                    return std::visit(*this, expr);
+                }
+
+            protected:
+                virtual R operator()(const Number &expr) = 0;
+                virtual R operator()(const Variable &expr) = 0;
             };
         } // namespace expr
 
+        /** @brief Statement ast */
         namespace stmt
         {
-            template <typename R>
-            class Visitor;
+            struct Function;
+            struct Expr;
+            using Stmt = std::variant<Function, Expr>;
 
-            template <typename R>
-            class Stmt
+            struct Function : Node
             {
-            public:
-                virtual ~Stmt() = default;
-                virtual R accept(Visitor<R> &visitor) = 0;
+                std::string Name;
+                std::vector<std::string> Args;
+                std::unique_ptr<expr::Expr> Body;
+
+                Function(const std::string &name,
+                         std::vector<std::string> args,
+                         std::unique_ptr<expr::Expr> body)
+                    : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
+            };
+
+            struct Expr : Node
+            {
+                std::unique_ptr<expr::Expr> Expression;
+
+                Expr(std::unique_ptr<expr::Expr> expression) : Expression{std::move(expression)} {}
             };
 
             template <typename R>
             class Visitor
             {
             public:
-                virtual ~Visitor() = default;
+                /** @brief Visit statement node */
+                R visit(const Stmt &stmt)
+                {
+                    return std::visit(*this, stmt);
+                }
+
+            protected:
+                virtual R operator()(const Function &stmt) = 0;
+                virtual R operator()(const Expr &stmt) = 0;
             };
         } // namespace stmt
+
     } // namespace ast
 } // namespace hypertk
 
