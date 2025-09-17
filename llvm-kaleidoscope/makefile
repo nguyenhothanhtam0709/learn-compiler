@@ -1,6 +1,6 @@
 CXX = clang++
 LLVM_CONFIG = llvm-config # this can be version based, for example: llvm-config-14
-CXXFLAGS = -Wall -std=c++17 `$(LLVM_CONFIG) --cxxflags`
+CXXFLAGS = -Wall -std=c++20 `$(LLVM_CONFIG) --cxxflags`
 LDFLAGS = `$(LLVM_CONFIG) --ldflags --system-libs --libs core irreader support`
 
 TARGET = llvm_kaleidoscope

@@ -1,3 +1,5 @@
+#include <string>
+
 #include "lexer.hpp"
 #include "token.hpp"
 
@@ -43,7 +45,7 @@ namespace lexer
         if (c == ';')
             return makeToken(token::TokenType::SEMICOLON);
 
-        return errorToken("Unexpected character.");
+        return errorToken(std::string("Unexpected character '") + c + "'.");
     }
 
     token::Token Lexer::number()

@@ -4,6 +4,8 @@
 
 namespace token
 {
+    Token::Token() {}
+
     Token::Token(TokenType type, int line) : type{type}, line{line} {}
 
     Token::Token(TokenType type, const std::string &lexeme, int line)

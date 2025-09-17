@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "common.hpp"
+
 namespace token
 {
     enum class TokenType
@@ -28,22 +30,19 @@ namespace token
         END_OF_FILE,
     };
 
-    class Token
+    class Token : private Uncopyable
     {
     public:
         TokenType type;
         std::string lexeme;
         int line;
 
+        explicit Token();
         Token(TokenType type, int line);
         Token(TokenType type, const std::string &lexeme, int line);
 
         Token(Token &&other) noexcept;
         Token &operator=(Token &&other) noexcept;
-
-        // Let compiler generate copy operations
-        Token(const Token &) = default;
-        Token &operator=(const Token &) = default;
     };
 }
 

@@ -6,6 +6,7 @@
 #include "lexer.hpp"
 #include "token.hpp"
 #include "ast.hpp"
+#include "parser.hpp"
 
 class AstVisitor : public ast::expr::Visitor<void>, public ast::stmt::Visitor<void>
 {
@@ -32,10 +33,11 @@ protected:
 
 int main()
 {
-    // std::string src = "func foo() {}";
-    // hypertk::Lexer lexer("func foo() {}");
-    // hypertk::Token token = lexer.nextToken();
-    // while (token.type != hypertk::TokenType::END_OF_FILE && token.type != hypertk::TokenType::ERROR)
+    std::string src = "func foo() {}";
+    parser::Parser parser_{lexer::Lexer{src}};
+
+    // Token token = lexer.nextToken();
+    // while (token.type != TokenType::END_OF_FILE && token.type != TokenType::ERROR)
     // {
     //     std::cout << "Current token: " << token.lexeme << "\n";
     //     token = lexer.nextToken();
@@ -43,11 +45,11 @@ int main()
 
     // std::cout << "Current token: " << src.at(src.length() - 1) << "\n";
 
-    std::unique_ptr<ast::stmt::Expression> exprStmt = std::make_unique<ast::stmt::Expression>(
-        std::make_unique<ast::expr::Number>(10));
+    // std::unique_ptr<ast::stmt::Expression> exprStmt = std::make_unique<ast::stmt::Expression>(
+    //     std::make_unique<ast::expr::Number>(10));
 
-    AstVisitor visitor;
-    visitor.visit(std::move(exprStmt));
+    // AstVisitor visitor;
+    // visitor.visit(std::move(exprStmt));
 
     return EXIT_SUCCESS;
 }
