@@ -5,7 +5,7 @@
 
 #include "token.hpp"
 
-namespace hypertk
+namespace lexer
 {
     class Lexer
     {
@@ -15,7 +15,7 @@ namespace hypertk
         /**
          * @note Since C++17, compilers guarantee `Return Value Optimization (RVO)` in most cases.
          */
-        Token nextToken();
+        token::Token nextToken();
 
     private:
         /** @brief Text source code */
@@ -24,15 +24,15 @@ namespace hypertk
         int current_;
         int line_;
 
-        Token identifier();
-        Token number();
+        token::Token identifier();
+        token::Token number();
 
         void skipWhitespaceAndComment() noexcept;
 
-        inline Token makeToken(TokenType type);
-        inline Token makeToken(TokenType type, const std::string &lexeme);
+        inline token::Token makeToken(token::TokenType type);
+        inline token::Token makeToken(token::TokenType type, const std::string &lexeme);
         inline std::string makeLexeme();
-        inline Token errorToken(const std::string &msg);
+        inline token::Token errorToken(const std::string &msg);
 
         bool match(char expected) noexcept;
         inline char advance() noexcept;

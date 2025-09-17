@@ -6,103 +6,157 @@
 #include <variant>
 #include <memory>
 
-namespace hypertk
+#include "common.hpp"
+#include "token.hpp"
+
+namespace ast
 {
-    namespace ast
+    enum class BinaryOp
     {
-        /** @brief Base ast node */
-        struct Node
+        ADD = (int)token::TokenType::PLUS,
+        SUB = (int)token::TokenType::MINUS,
+        MUL = (int)token::TokenType::STAR,
+        DIV = (int)token::TokenType::SLASH,
+    };
+
+    /** @brief Expression ast */
+    namespace expr
+    {
+        struct Number;
+        struct Variable;
+        struct Binary;
+        struct Call;
+
+        using NumberPtr = std::unique_ptr<Number>;
+        using VariablePtr = std::unique_ptr<Variable>;
+        using BinaryPtr = std::unique_ptr<Binary>;
+        using CallPtr = std::unique_ptr<Call>;
+        using ExprPtr = std::variant<NumberPtr, VariablePtr, BinaryPtr, CallPtr>;
+
+        struct Number : private Uncopyable
         {
-            Node() = default;
-            virtual ~Node() = default;
+            double Val;
 
-            Node(Node &&other) noexcept = default;
-            Node &operator=(Node &&other) noexcept = default;
-
-            explicit Node(const Node &) = delete;
-            Node &operator=(const Node &) = delete;
+            explicit Number(double val) : Val{val} {}
         };
 
-        /** @brief Expression ast */
-        namespace expr
+        struct Variable : private Uncopyable
         {
-            struct Number;
-            struct Variable;
-            using Expr = std::variant<Number, Variable>;
+            std::string Name;
 
-            struct Number : Node
-            {
-                double Val;
+            explicit Variable(const std::string &name) : Name{name} {}
+        };
 
-                explicit Number(double val) : Val{val} {}
-            };
-
-            struct Variable : Node
-            {
-                std::string Name;
-
-                explicit Variable(const std::string &name) : Name{name} {}
-            };
-
-            template <typename R>
-            class Visitor
-            {
-            public:
-                /** @brief Visit expression node */
-                R visit(const Expr &expr)
-                {
-                    return std::visit(*this, expr);
-                }
-
-            protected:
-                virtual R operator()(const Number &expr) = 0;
-                virtual R operator()(const Variable &expr) = 0;
-            };
-        } // namespace expr
-
-        /** @brief Statement ast */
-        namespace stmt
+        struct Binary : private Uncopyable
         {
-            struct Function;
-            struct Expr;
-            using Stmt = std::variant<Function, Expr>;
+            BinaryOp Op;
+            ExprPtr LHS, RHS;
 
-            struct Function : Node
+            Binary(BinaryOp Op, ExprPtr LHS, ExprPtr RHS)
+                : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+        };
+
+        struct Call : private Uncopyable
+        {
+            std::string Callee;
+            std::vector<ExprPtr> Args;
+
+            Call(const std::string &Callee,
+                 std::vector<ExprPtr> Args)
+                : Callee(Callee), Args(std::move(Args)) {}
+        };
+
+        template <typename R>
+        class Visitor
+        {
+        public:
+            /** @brief Visit expression node */
+            R visit(const ExprPtr &expr)
             {
-                std::string Name;
-                std::vector<std::string> Args;
-                std::unique_ptr<expr::Expr> Body;
+                return std::visit(
+                    overloaded{
+                        [this](const NumberPtr &expr)
+                        {
+                            return visitNumberExpr(*expr);
+                        },
+                        [this](const VariablePtr &expr)
+                        {
+                            return visitVariableExpr(*expr);
+                        },
+                        [this](const BinaryPtr &expr)
+                        {
+                            return visitBinaryExpr(*expr);
+                        },
+                        [this](const CallPtr &expr)
+                        {
+                            return visitCallExpr(*expr);
+                        }},
+                    expr);
+            }
 
-                Function(const std::string &name,
-                         std::vector<std::string> args,
-                         std::unique_ptr<expr::Expr> body)
-                    : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
-            };
+        protected:
+            virtual R visitNumberExpr(const Number &expr) = 0;
+            virtual R visitVariableExpr(const Variable &expr) = 0;
+            virtual R visitBinaryExpr(const Binary &expr) = 0;
+            virtual R visitCallExpr(const Call &expr) = 0;
+        };
+    } // namespace expr
 
-            struct Expr : Node
+    /** @brief Statement ast */
+    namespace stmt
+    {
+        struct Function;
+        struct Expression;
+
+        using FunctionPtr = std::unique_ptr<Function>;
+        using ExpressionPtr = std::unique_ptr<Expression>;
+        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr>;
+
+        struct Function : private Uncopyable
+        {
+            std::string Name;
+            std::vector<std::string> Args;
+            expr::ExprPtr Body;
+
+            Function(const std::string &name,
+                     std::vector<std::string> args,
+                     expr::ExprPtr body)
+                : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
+        };
+
+        struct Expression : private Uncopyable
+        {
+            expr::ExprPtr Expr;
+
+            Expression(expr::ExprPtr expr) : Expr{std::move(expr)} {}
+        };
+
+        template <typename R>
+        class Visitor
+        {
+        public:
+            /** @brief Visit statement node */
+            R visit(const StmtPtr &stmt)
             {
-                std::unique_ptr<expr::Expr> Expression;
+                return std::visit(
+                    overloaded{
+                        [this](const FunctionPtr &stmt)
+                        {
+                            return visitFunctionStmt(*stmt);
+                        },
+                        [this](const ExpressionPtr &stmt)
+                        {
+                            return visitExpressionStmt(*stmt);
+                        }},
+                    stmt);
+            }
 
-                Expr(std::unique_ptr<expr::Expr> expression) : Expression{std::move(expression)} {}
-            };
+        protected:
+            virtual R visitFunctionStmt(const Function &stmt) = 0;
+            virtual R visitExpressionStmt(const Expression &stmt) = 0;
+        };
+    } // namespace stmt
 
-            template <typename R>
-            class Visitor
-            {
-            public:
-                /** @brief Visit statement node */
-                R visit(const Stmt &stmt)
-                {
-                    return std::visit(*this, stmt);
-                }
-
-            protected:
-                virtual R operator()(const Function &stmt) = 0;
-                virtual R operator()(const Expr &stmt) = 0;
-            };
-        } // namespace stmt
-
-    } // namespace ast
-} // namespace hypertk
+} // namespace ast
 
 #endif

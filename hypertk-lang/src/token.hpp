@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace hypertk
+namespace token
 {
     enum class TokenType
     {

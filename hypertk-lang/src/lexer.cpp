@@ -1,19 +1,19 @@
 #include "lexer.hpp"
 #include "token.hpp"
 
-namespace hypertk
+namespace lexer
 {
     Lexer::Lexer(const std::string &src)
         : src_{src}, start_{0}, current_{0}, line_{1} {}
 
-    Token Lexer::nextToken()
+    token::Token Lexer::nextToken()
     {
         skipWhitespaceAndComment();
 
         start_ = current_;
 
         if (isAtEnd())
-            return Token(TokenType::END_OF_FILE, line_);
+            return token::Token(token::TokenType::END_OF_FILE, line_);
 
         char c = advance();
 
@@ -23,30 +23,30 @@ namespace hypertk
             return number();
 
         if (c == '+')
-            return makeToken(TokenType::PLUS);
+            return makeToken(token::TokenType::PLUS);
         if (c == '-')
-            return makeToken(TokenType::MINUS);
+            return makeToken(token::TokenType::MINUS);
         if (c == '*')
-            return makeToken(TokenType::STAR);
+            return makeToken(token::TokenType::STAR);
         if (c == '/')
-            return makeToken(TokenType::SLASH);
+            return makeToken(token::TokenType::SLASH);
         if (c == '(')
-            return makeToken(TokenType::LEFT_PAREN);
+            return makeToken(token::TokenType::LEFT_PAREN);
         if (c == ')')
-            return makeToken(TokenType::RIGHT_PAREN);
+            return makeToken(token::TokenType::RIGHT_PAREN);
         if (c == '{')
-            return makeToken(TokenType::LEFT_BRACE);
+            return makeToken(token::TokenType::LEFT_BRACE);
         if (c == '}')
-            return makeToken(TokenType::RIGHT_BRACE);
+            return makeToken(token::TokenType::RIGHT_BRACE);
         if (c == ':')
-            return makeToken(TokenType::COLON);
+            return makeToken(token::TokenType::COLON);
         if (c == ';')
-            return makeToken(TokenType::SEMICOLON);
+            return makeToken(token::TokenType::SEMICOLON);
 
         return errorToken("Unexpected character.");
     }
 
-    Token Lexer::number()
+    token::Token Lexer::number()
     {
         while (isdigit(peek()))
             advance();
@@ -59,19 +59,19 @@ namespace hypertk
                 advance();
         }
 
-        return makeToken(TokenType::NUMBER);
+        return makeToken(token::TokenType::NUMBER);
     }
-    Token Lexer::identifier()
+    token::Token Lexer::identifier()
     {
         while (isalnum(peek()))
             advance();
 
         const auto lexeme = makeLexeme();
-        TokenType type;
+        token::TokenType type;
         if (lexeme == "func")
-            type = TokenType::FUNC;
+            type = token::TokenType::FUNC;
         else
-            type = TokenType::IDENTIFIER;
+            type = token::TokenType::IDENTIFIER;
 
         return makeToken(type, lexeme);
     }
@@ -117,10 +117,10 @@ namespace hypertk
         }
     }
 
-    inline Token Lexer::makeToken(TokenType type) { return Token(type, makeLexeme(), line_); }
-    inline Token Lexer::makeToken(TokenType type, const std::string &lexeme) { return Token(type, lexeme, line_); }
+    inline token::Token Lexer::makeToken(token::TokenType type) { return token::Token(type, makeLexeme(), line_); }
+    inline token::Token Lexer::makeToken(token::TokenType type, const std::string &lexeme) { return token::Token(type, lexeme, line_); }
     inline std::string Lexer::makeLexeme() { return src_.substr(start_, current_ - start_); }
-    inline Token Lexer::errorToken(const std::string &msg) { return makeToken(TokenType::ERROR, msg); }
+    inline token::Token Lexer::errorToken(const std::string &msg) { return makeToken(token::TokenType::ERROR, msg); }
 
     bool Lexer::match(char expected) noexcept
     {

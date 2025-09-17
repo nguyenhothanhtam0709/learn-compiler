@@ -2,7 +2,7 @@
 
 #include "token.hpp"
 
-namespace hypertk
+namespace token
 {
     Token::Token(TokenType type, int line) : type{type}, line{line} {}
 
