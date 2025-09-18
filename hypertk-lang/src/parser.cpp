@@ -30,7 +30,7 @@ namespace parser
         return std::move(program);
     }
 
-    std::optional<ast::stmt::StmtPtr> Parser::parseDeclaration()
+    std::optional<ast::statement::StmtPtr> Parser::parseDeclaration()
     {
         if (match(TokenType::FUNC))
             return parseFunctionDeclaration();
@@ -38,12 +38,12 @@ namespace parser
         return parseStatement();
     }
 
-    std::optional<ast::stmt::StmtPtr> Parser::parseStatement()
+    std::optional<ast::statement::StmtPtr> Parser::parseStatement()
     {
         return parseExpressionStmt();
     }
 
-    std::optional<ast::stmt::FunctionPtr> Parser::parseFunctionDeclaration()
+    std::optional<ast::statement::FunctionPtr> Parser::parseFunctionDeclaration()
     {
         consume(TokenType::IDENTIFIER, "Expect function name.");
         token::Token name = std::move(previous_);
@@ -64,7 +64,7 @@ namespace parser
         consume(TokenType::RIGHT_PAREN, "Expect ')'.");
         consume(TokenType::LEFT_BRACE, "Expect '{'.");
 
-        std::vector<ast::stmt::StmtPtr> stmts;
+        std::vector<ast::statement::StmtPtr> stmts;
         if (!check(TokenType::RIGHT_BRACE))
         {
             if (auto stmt = parseExpressionStmt(); stmt.has_value())
@@ -75,32 +75,32 @@ namespace parser
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
-        return std::make_unique<ast::stmt::Function>(name.lexeme, std::move(args), std::move(stmts));
+        return std::make_unique<ast::statement::Function>(name.lexeme, std::move(args), std::move(stmts));
     }
 
-    std::optional<ast::stmt::ExpressionPtr> Parser::parseExpressionStmt()
+    std::optional<ast::statement::ExpressionPtr> Parser::parseExpressionStmt()
     {
         if (auto expr = parseExpr(); expr.has_value())
         {
-            auto stmt = std::make_unique<ast::stmt::Expression>(std::move(expr.value()));
+            auto stmt = std::make_unique<ast::statement::Expression>(std::move(expr.value()));
             consume(TokenType::SEMICOLON, "Expect ';' after expression.");
             return stmt;
         }
 
-        return std::make_optional<ast::stmt::ExpressionPtr>();
+        return std::make_optional<ast::statement::ExpressionPtr>();
     }
 
     //> Parse expression
-    std::optional<ast::expr::ExprPtr> Parser::parseExpr()
+    std::optional<ast::expression::ExprPtr> Parser::parseExpr()
     {
         auto LHS = parsePrimary();
         if (!LHS.has_value())
-            return std::make_optional<ast::expr::ExprPtr>();
+            return std::make_optional<ast::expression::ExprPtr>();
 
         return parseBinaryRHS(0, std::move(LHS.value()));
     }
 
-    std::optional<ast::expr::ExprPtr> Parser::parseBinaryRHS(int exprPrec, ast::expr::ExprPtr LHS)
+    std::optional<ast::expression::ExprPtr> Parser::parseBinaryRHS(int exprPrec, ast::expression::ExprPtr LHS)
     {
         // If this is a binop, find its precedence.
         while (true)
@@ -119,7 +119,7 @@ namespace parser
             // Parse the primary expression after the binary operator.
             auto RHS = parsePrimary();
             if (!RHS.has_value())
-                return std::make_optional<ast::expr::ExprPtr>();
+                return std::make_optional<ast::expression::ExprPtr>();
 
             // If BinOp binds less tightly with RHS than the operator after RHS, let
             // the pending operator take RHS as its LHS.
@@ -128,29 +128,29 @@ namespace parser
             {
                 RHS = parseBinaryRHS(tokenPrec + 1, std::move(RHS.value()));
                 if (!RHS.has_value())
-                    return std::make_optional<ast::expr::ExprPtr>();
+                    return std::make_optional<ast::expression::ExprPtr>();
             }
 
             // Merge LHS/RHS.
-            LHS = std::make_unique<ast::expr::Binary>((ast::BinaryOp)binOp.type, std::move(LHS), std::move(RHS.value()));
+            LHS = std::make_unique<ast::expression::Binary>((ast::BinaryOp)binOp.type, std::move(LHS), std::move(RHS.value()));
         }
     }
 
-    std::optional<ast::expr::ExprPtr> Parser::parsePrimary()
+    std::optional<ast::expression::ExprPtr> Parser::parsePrimary()
     {
         if (match(TokenType::NUMBER))
-            return std::make_unique<ast::expr::Number>(std::stod(previous_.lexeme));
+            return std::make_unique<ast::expression::Number>(std::stod(previous_.lexeme));
         if (match(TokenType::IDENTIFIER))
-            return std::make_unique<ast::expr::Variable>(previous_.lexeme);
+            return std::make_unique<ast::expression::Variable>(previous_.lexeme);
         if (match(TokenType::LEFT_PAREN))
             return parseParen();
 
         errorAtCurrent("Unexpected token.");
-        return std::make_optional<ast::expr::ExprPtr>();
+        return std::make_optional<ast::expression::ExprPtr>();
     }
 
     /// @brief parenexpr ::= '(' expression ')'
-    std::optional<ast::expr::ExprPtr> Parser::parseParen()
+    std::optional<ast::expression::ExprPtr> Parser::parseParen()
     {
         auto expr = parseExpr();
         if (!expr.has_value())

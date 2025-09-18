@@ -23,16 +23,16 @@ namespace parser
         token::Token current_;
         bool panicMode_;
 
-        std::optional<ast::stmt::StmtPtr> parseDeclaration();
-        std::optional<ast::stmt::StmtPtr> parseStatement();
-        std::optional<ast::stmt::FunctionPtr> parseFunctionDeclaration();
-        std::optional<ast::stmt::ExpressionPtr> parseExpressionStmt();
+        std::optional<ast::statement::StmtPtr> parseDeclaration();
+        std::optional<ast::statement::StmtPtr> parseStatement();
+        std::optional<ast::statement::FunctionPtr> parseFunctionDeclaration();
+        std::optional<ast::statement::ExpressionPtr> parseExpressionStmt();
 
         //> Parse expression
-        std::optional<ast::expr::ExprPtr> parseExpr();
-        std::optional<ast::expr::ExprPtr> parseBinaryRHS(int exprPrec, ast::expr::ExprPtr LHS);
-        std::optional<ast::expr::ExprPtr> parsePrimary();
-        std::optional<ast::expr::ExprPtr> parseParen();
+        std::optional<ast::expression::ExprPtr> parseExpr();
+        std::optional<ast::expression::ExprPtr> parseBinaryRHS(int exprPrec, ast::expression::ExprPtr LHS);
+        std::optional<ast::expression::ExprPtr> parsePrimary();
+        std::optional<ast::expression::ExprPtr> parseParen();
         int getTokenPrecedence(token::TokenType type);
         //< Parse expression
 

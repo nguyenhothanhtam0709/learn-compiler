@@ -20,7 +20,7 @@ namespace ast
     };
 
     /** @brief Expression ast */
-    namespace expr
+    namespace expression
     {
         struct Number;
         struct Variable;
@@ -103,7 +103,7 @@ namespace ast
     } // namespace expr
 
     /** @brief Statement ast */
-    namespace stmt
+    namespace statement
     {
         struct Function;
         struct Expression;
@@ -126,9 +126,9 @@ namespace ast
 
         struct Expression : private Uncopyable
         {
-            expr::ExprPtr Expr;
+            expression::ExprPtr Expr;
 
-            Expression(expr::ExprPtr expr) : Expr{std::move(expr)} {}
+            Expression(expression::ExprPtr expr) : Expr{std::move(expr)} {}
         };
 
         template <typename R>
@@ -157,7 +157,7 @@ namespace ast
         };
     } // namespace stmt
 
-    using Program = std::vector<stmt::StmtPtr>;
+    using Program = std::vector<statement::StmtPtr>;
 
     
 } // namespace ast
