@@ -9,8 +9,10 @@ namespace parser
 {
     using token::TokenType;
 
-    Parser::Parser(const lexer::Lexer &lexer)
-        : lexer_{std::move(lexer)}, panicMode_{false} {}
+    explicit Parser::Parser(lexer::Lexer &&lexer_)
+        : lexer_{std::move(lexer_)}, panicMode_{false} {}
+    // Parser::Parser(const lexer::Lexer &lexer)
+    //     : lexer_{std::move(lexer)}, panicMode_{false} {}
 
     ast::stmt::StmtPtr Parser::parse()
     {

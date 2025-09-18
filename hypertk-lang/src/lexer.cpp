@@ -8,6 +8,21 @@ namespace lexer
     Lexer::Lexer(const std::string &src)
         : src_{src}, start_{0}, current_{0}, line_{1} {}
 
+    Lexer::Lexer(Lexer &&other)
+        : src_{std::move(other.src_)}, start_{other.start_}, current_{other.current_}, line_{other.line_} {}
+    Lexer &Lexer::operator=(Lexer &&other)
+    {
+        if (this != &other)
+        {
+            src_ = std::move(other.src_);
+            start_ = other.start_;
+            current_ = other.current_;
+            line_ = other.line_;
+        }
+
+        return *this;
+    }
+
     token::Token Lexer::nextToken()
     {
         skipWhitespaceAndComment();

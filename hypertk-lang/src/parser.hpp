@@ -12,7 +12,8 @@ namespace parser
     class Parser
     {
     public:
-        explicit Parser(const lexer::Lexer &lexer_);
+        explicit Parser(lexer::Lexer &&lexer_);
+        // explicit Parser(const lexer::Lexer &lexer_);
 
         ast::stmt::StmtPtr parse();
 

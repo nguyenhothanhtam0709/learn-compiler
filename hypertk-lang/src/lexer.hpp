@@ -7,10 +7,13 @@
 
 namespace lexer
 {
-    class Lexer
+    class Lexer : private Uncopyable
     {
     public:
         explicit Lexer(const std::string &src);
+
+        Lexer(Lexer &&other);
+        Lexer &operator=(Lexer &&other);
 
         /**
          * @note Since C++17, compilers guarantee `Return Value Optimization (RVO)` in most cases.
@@ -19,7 +22,7 @@ namespace lexer
 
     private:
         /** @brief Text source code */
-        const std::string src_;
+        std::string src_;
         int start_;
         int current_;
         int line_;
