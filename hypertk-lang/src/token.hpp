@@ -20,6 +20,7 @@ namespace token
         SLASH,       // `/`
         COLON,       // `:`
         SEMICOLON,   // `;`
+        COMMA,       // `,`
         /** literals */
         IDENTIFIER, // Identifier
         NUMBER,     // float

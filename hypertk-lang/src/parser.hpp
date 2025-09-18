@@ -15,7 +15,7 @@ namespace parser
         explicit Parser(lexer::Lexer &&lexer_);
         // explicit Parser(const lexer::Lexer &lexer_);
 
-        ast::stmt::StmtPtr parse();
+        std::optional<ast::Program> parse();
 
     private:
         lexer::Lexer lexer_;
@@ -23,14 +23,18 @@ namespace parser
         token::Token current_;
         bool panicMode_;
 
-        std::optional<ast::stmt::StmtPtr> statement();
-        std::optional<ast::stmt::FunctionPtr> functionStmt();
-        std::optional<ast::stmt::ExpressionPtr> expressionStmt();
+        std::optional<ast::stmt::StmtPtr> parseDeclaration();
+        std::optional<ast::stmt::StmtPtr> parseStatement();
+        std::optional<ast::stmt::FunctionPtr> parseFunctionDeclaration();
+        std::optional<ast::stmt::ExpressionPtr> parseExpressionStmt();
 
-        std::optional<ast::expr::ExprPtr> expression();
-        std::optional<ast::expr::CallPtr> callExpr();
-        std::optional<ast::expr::BinaryPtr> binaryExpr();
-        std::optional<ast::expr::ExprPtr> primaryExpr();
+        //> Parse expression
+        std::optional<ast::expr::ExprPtr> parseExpr();
+        std::optional<ast::expr::ExprPtr> parseBinaryRHS(int exprPrec, ast::expr::ExprPtr LHS);
+        std::optional<ast::expr::ExprPtr> parsePrimary();
+        std::optional<ast::expr::ExprPtr> parseParen();
+        int getTokenPrecedence(token::TokenType type);
+        //< Parse expression
 
         void advance();
         void consume(token::TokenType type, const std::string &msg);

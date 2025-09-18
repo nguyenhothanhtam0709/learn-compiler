@@ -9,31 +9,41 @@ namespace parser
 {
     using token::TokenType;
 
-    explicit Parser::Parser(lexer::Lexer &&lexer_)
+    Parser::Parser(lexer::Lexer &&lexer_)
         : lexer_{std::move(lexer_)}, panicMode_{false} {}
     // Parser::Parser(const lexer::Lexer &lexer)
     //     : lexer_{std::move(lexer)}, panicMode_{false} {}
 
-    ast::stmt::StmtPtr Parser::parse()
+    std::optional<ast::Program> Parser::parse()
     {
         advance();
 
+        ast::Program program;
         while (!match(TokenType::END_OF_FILE))
         {
+            if (auto stmt = parseDeclaration(); stmt.has_value())
+            {
+                program.emplace_back(std::move(stmt.value()));
+            }
         }
+
+        return std::move(program);
     }
 
-    std::optional<ast::stmt::StmtPtr> Parser::statement()
+    std::optional<ast::stmt::StmtPtr> Parser::parseDeclaration()
     {
         if (match(TokenType::FUNC))
-            return functionStmt();
+            return parseFunctionDeclaration();
 
-        return expressionStmt();
-
-        // TODO: synchronization for panic handling
+        return parseStatement();
     }
 
-    std::optional<ast::stmt::FunctionPtr> Parser::functionStmt()
+    std::optional<ast::stmt::StmtPtr> Parser::parseStatement()
+    {
+        return parseExpressionStmt();
+    }
+
+    std::optional<ast::stmt::FunctionPtr> Parser::parseFunctionDeclaration()
     {
         consume(TokenType::IDENTIFIER, "Expect function name.");
         token::Token name = std::move(previous_);
@@ -42,24 +52,37 @@ namespace parser
 
         // Read the list of argument names.
         std::vector<std::string> args;
-        while (match(TokenType::IDENTIFIER))
-            args.push_back(std::move(previous_.lexeme));
+        if (!check(TokenType::RIGHT_PAREN))
+        {
+            do
+            {
+                advance();
+                args.push_back(std::move(previous_.lexeme));
+            } while (match(TokenType::COMMA));
+        }
 
         consume(TokenType::RIGHT_PAREN, "Expect ')'.");
         consume(TokenType::LEFT_BRACE, "Expect '{'.");
 
-        auto expr = expressionStmt();
+        std::vector<ast::stmt::StmtPtr> stmts;
+        if (!check(TokenType::RIGHT_BRACE))
+        {
+            if (auto stmt = parseExpressionStmt(); stmt.has_value())
+            {
+                stmts.emplace_back(std::move(stmt.value()));
+            }
+        }
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
-        return std::make_unique<ast::stmt::Function>(name, std::move(args), expr.has_value() ? std::move(expr.value()) : nullptr);
+        return std::make_unique<ast::stmt::Function>(name.lexeme, std::move(args), std::move(stmts));
     }
 
-    std::optional<ast::stmt::ExpressionPtr> Parser::expressionStmt()
+    std::optional<ast::stmt::ExpressionPtr> Parser::parseExpressionStmt()
     {
-        if (auto expr = expression(); expr.has_value())
+        if (auto expr = parseExpr(); expr.has_value())
         {
-            auto stmt = std::make_unique<ast::stmt::Expression>(expr.value());
+            auto stmt = std::make_unique<ast::stmt::Expression>(std::move(expr.value()));
             consume(TokenType::SEMICOLON, "Expect ';' after expression.");
             return stmt;
         }
@@ -67,22 +90,93 @@ namespace parser
         return std::make_optional<ast::stmt::ExpressionPtr>();
     }
 
-    std::optional<ast::expr::ExprPtr> Parser::expression() {}
+    //> Parse expression
+    std::optional<ast::expr::ExprPtr> Parser::parseExpr()
+    {
+        auto LHS = parsePrimary();
+        if (!LHS.has_value())
+            return std::make_optional<ast::expr::ExprPtr>();
 
-    std::optional<ast::expr::CallPtr> Parser::callExpr() {}
+        return parseBinaryRHS(0, std::move(LHS.value()));
+    }
 
-    std::optional<ast::expr::BinaryPtr> Parser::binaryExpr() {}
+    std::optional<ast::expr::ExprPtr> Parser::parseBinaryRHS(int exprPrec, ast::expr::ExprPtr LHS)
+    {
+        // If this is a binop, find its precedence.
+        while (true)
+        {
+            int tokenPrec = getTokenPrecedence(current_.type);
 
-    std::optional<ast::expr::ExprPtr> Parser::primaryExpr()
+            // If this is a binop that binds at least as tightly as the current binop,
+            // consume it, otherwise we are done.
+            if (tokenPrec < exprPrec)
+                return LHS;
+
+            // Okay, we know this is a binop.
+            advance();
+            auto binOp = std::move(previous_);
+
+            // Parse the primary expression after the binary operator.
+            auto RHS = parsePrimary();
+            if (!RHS.has_value())
+                return std::make_optional<ast::expr::ExprPtr>();
+
+            // If BinOp binds less tightly with RHS than the operator after RHS, let
+            // the pending operator take RHS as its LHS.
+            int nextPrec = getTokenPrecedence(current_.type);
+            if (tokenPrec < nextPrec)
+            {
+                RHS = parseBinaryRHS(tokenPrec + 1, std::move(RHS.value()));
+                if (!RHS.has_value())
+                    return std::make_optional<ast::expr::ExprPtr>();
+            }
+
+            // Merge LHS/RHS.
+            LHS = std::make_unique<ast::expr::Binary>((ast::BinaryOp)binOp.type, std::move(LHS), std::move(RHS.value()));
+        }
+    }
+
+    std::optional<ast::expr::ExprPtr> Parser::parsePrimary()
     {
         if (match(TokenType::NUMBER))
             return std::make_unique<ast::expr::Number>(std::stod(previous_.lexeme));
         if (match(TokenType::IDENTIFIER))
             return std::make_unique<ast::expr::Variable>(previous_.lexeme);
+        if (match(TokenType::LEFT_PAREN))
+            return parseParen();
 
         errorAtCurrent("Unexpected token.");
         return std::make_optional<ast::expr::ExprPtr>();
     }
+
+    /// @brief parenexpr ::= '(' expression ')'
+    std::optional<ast::expr::ExprPtr> Parser::parseParen()
+    {
+        auto expr = parseExpr();
+        if (!expr.has_value())
+            return expr;
+
+        consume(TokenType::RIGHT_PAREN, "Expect ')'.");
+        return expr;
+    }
+
+    int Parser::getTokenPrecedence(TokenType type)
+    {
+        switch (type)
+        {
+        case TokenType::PLUS:
+            return 20;
+        case TokenType::MINUS:
+            return 20;
+        case TokenType::STAR:
+            return 40;
+        case TokenType::SLASH:
+            return 40;
+        default:
+            return -1;
+        }
+    }
+    //< Parse expression
 
     void Parser::advance()
     {
@@ -99,7 +193,7 @@ namespace parser
     }
     void Parser::consume(token::TokenType type, const std::string &msg)
     {
-        if (current_.type == type)
+        if (check(type))
         {
             advance();
             return;

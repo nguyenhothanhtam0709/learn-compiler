@@ -116,11 +116,11 @@ namespace ast
         {
             std::string Name;
             std::vector<std::string> Args;
-            expr::ExprPtr Body;
+            std::vector<StmtPtr> Body;
 
             Function(const std::string &name,
                      std::vector<std::string> args,
-                     expr::ExprPtr body)
+                     std::vector<StmtPtr> body)
                 : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
         };
 
@@ -157,6 +157,9 @@ namespace ast
         };
     } // namespace stmt
 
+    using Program = std::vector<stmt::StmtPtr>;
+
+    
 } // namespace ast
 
 #endif
