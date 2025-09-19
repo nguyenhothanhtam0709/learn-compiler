@@ -8,6 +8,7 @@
 #include "ast.hpp"
 #include "parser.hpp"
 #include "ast_printer.hpp"
+#include "codegen_llvm_ir.hpp"
 
 int main()
 {
@@ -17,8 +18,11 @@ int main()
     auto ast_ = parser_.parse();
     if (ast_.has_value())
     {
-        ast::SimplePrinter printer;
-        printer.print(ast_.value());
+        // ast::SimplePrinter printer;
+        // printer.print(ast_.value());
+
+        codegen::CodegenLlvmIr gen;
+        gen.printIR(ast_.value());
     }
 
     // lexer::Lexer l{src};

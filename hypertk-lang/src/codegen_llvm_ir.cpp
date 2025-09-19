@@ -20,15 +20,30 @@ namespace codegen
         : ast::statement::Visitor<llvm::Value *>(),
           ast::expression::Visitor<llvm::Value *>(),
           TheContext_{std::make_unique<llvm::LLVMContext>()},
-          TheModule_{std::make_unique<llvm::Module>("HyperTk codegen", *TheContext_)},
-          Builder_{std::make_unique<llvm::IRBuilder<>>(*TheContext_)} {}
+          Builder_{std::make_unique<llvm::IRBuilder<>>(*TheContext_)},
+          TheModule_{std::make_unique<llvm::Module>("HyperTk codegen", *TheContext_)} {}
+
+    void CodegenLlvmIr::printIR(const ast::Program &program)
+    {
+        genIR(program);
+
+        TheModule_->print(llvm::errs(), nullptr);
+    }
+
+    llvm::Value *CodegenLlvmIr::genIR(const ast::Program &program)
+    {
+        for (const auto &stmt : program)
+            visit(stmt);
+
+        return nullptr;
+    }
 
     //> statements
     llvm::Value *CodegenLlvmIr::visitFunctionStmt(
         const ast::statement::Function &stmt)
     {
         llvm::Function *theFunction = TheModule_->getFunction(stmt.Name);
-        if (!theFunction->empty())
+        if (theFunction && !theFunction->empty())
         {
             logError("Function cannot be redefined.");
             return nullptr;
@@ -62,14 +77,15 @@ namespace codegen
             visit(fStmt);
 
         Builder_->CreateRetVoid(); // Create the return statement
+        //<
 
         if (llvm::verifyFunction(*theFunction))
         {
             return theFunction;
         }
 
+        theFunction->eraseFromParent();
         return nullptr;
-        //<
     }
 
     llvm::Value *CodegenLlvmIr::visitExpressionStmt(

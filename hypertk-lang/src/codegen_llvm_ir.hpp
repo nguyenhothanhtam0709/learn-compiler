@@ -29,6 +29,9 @@ namespace codegen
     public:
         CodegenLlvmIr();
 
+        void printIR(const ast::Program &program);
+        llvm::Value *genIR(const ast::Program &program);
+
     protected:
         using ast::expression::Visitor<llvm::Value *>::visit;
         using ast::statement::Visitor<llvm::Value *>::visit;
@@ -45,7 +48,7 @@ namespace codegen
         llvm::Value *visitCallExpr(const ast::expression::Call &expr);
         //<
 
-        void logError(const std::string&msg);
+        void logError(const std::string &msg);
     };
 } // namespace codegen
 
