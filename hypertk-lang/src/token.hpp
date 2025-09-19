@@ -25,7 +25,8 @@ namespace token
         IDENTIFIER, // Identifier
         NUMBER,     // float
         /** keywords */
-        FUNC, // `func`
+        FUNC,   // `func`
+        RETURN, // `return`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

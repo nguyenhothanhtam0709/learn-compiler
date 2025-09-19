@@ -23,10 +23,13 @@ namespace parser
         token::Token current_;
         bool panicMode_;
 
+        //> Parse statement
         std::optional<ast::statement::StmtPtr> parseDeclaration();
         std::optional<ast::statement::StmtPtr> parseStatement();
         std::optional<ast::statement::FunctionPtr> parseFunctionDeclaration();
         std::optional<ast::statement::ExpressionPtr> parseExpressionStmt();
+        std::optional<ast::statement::ReturnPtr> parseReturnStmt();
+        //<
 
         //> Parse expression
         std::optional<ast::expression::ExprPtr> parseExpr();

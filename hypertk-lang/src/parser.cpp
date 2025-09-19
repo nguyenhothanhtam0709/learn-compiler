@@ -24,12 +24,16 @@ namespace parser
             if (auto stmt = parseDeclaration(); stmt.has_value())
             {
                 program.emplace_back(std::move(stmt.value()));
+                continue;
             }
+
+            break; // should synchronize
         }
 
         return std::move(program);
     }
 
+    //> Parse statement
     std::optional<ast::statement::StmtPtr> Parser::parseDeclaration()
     {
         if (match(TokenType::FUNC))
@@ -40,6 +44,8 @@ namespace parser
 
     std::optional<ast::statement::StmtPtr> Parser::parseStatement()
     {
+        if (match(TokenType::RETURN))
+            return parseReturnStmt();
         return parseExpressionStmt();
     }
 
@@ -65,11 +71,12 @@ namespace parser
         consume(TokenType::LEFT_BRACE, "Expect '{'.");
 
         std::vector<ast::statement::StmtPtr> stmts;
-        if (!check(TokenType::RIGHT_BRACE))
+        while (!check(TokenType::RIGHT_BRACE))
         {
-            if (auto stmt = parseExpressionStmt(); stmt.has_value())
+            if (auto stmt = parseStatement(); stmt.has_value())
             {
                 stmts.emplace_back(std::move(stmt.value()));
+                continue;
             }
         }
 
@@ -89,6 +96,19 @@ namespace parser
 
         return std::make_optional<ast::statement::ExpressionPtr>();
     }
+
+    std::optional<ast::statement::ReturnPtr> Parser::parseReturnStmt()
+    {
+        if (auto expr = parseExpr(); expr.has_value())
+        {
+            auto stmt = std::make_unique<ast::statement::Return>(std::move(expr.value()));
+            consume(TokenType::SEMICOLON, "Expect ';' after expression.");
+            return stmt;
+        }
+
+        return std::make_optional<ast::statement::ReturnPtr>();
+    }
+    //>
 
     //> Parse expression
     std::optional<ast::expression::ExprPtr> Parser::parseExpr()

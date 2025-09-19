@@ -13,7 +13,7 @@ namespace error
     static inline void report(const int line, const std::string where, const std::string msg)
     {
         hasError_ = true;
-        std::cerr << "[line " << line << "] Error" << where << ": " << msg << "\n";
+        std::cerr << "[line " << line << "] Error " << where << ": " << msg << "\n";
     }
 
     void error(const int line, const std::string &msg)

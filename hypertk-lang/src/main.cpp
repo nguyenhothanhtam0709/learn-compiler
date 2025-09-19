@@ -12,7 +12,7 @@
 
 int main()
 {
-    std::string src = "func foo(a,b) {a*a + 2*a*b + b*b;}";
+    std::string src = "func foo(a,b) { a*a + 2*a*b + b*b; return a*a + 2*a*b;}";
     parser::Parser parser_{lexer::Lexer{src}};
 
     auto ast_ = parser_.parse();

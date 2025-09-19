@@ -1,6 +1,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <iostream>
 
 #include "llvm/IR/Value.h"
 #include "llvm/IR/LLVMContext.h"
@@ -9,6 +10,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include "codegen_llvm_ir.hpp"
 #include "ast.hpp"
@@ -76,22 +78,46 @@ namespace codegen
         for (const auto &fStmt : stmt.Body)
             visit(fStmt);
 
-        Builder_->CreateRetVoid(); // Create the return statement
-        //<
+        // if (!Builder_->GetInsertBlock()->getTerminator())
+        // {
+        //     if (theFunction->getReturnType()->isVoidTy())
+        //         Builder_->CreateRetVoid();
+        //     else
+        //     {
+        //         // Return 0.0 for double functions without explicit return
+        //         Builder_->CreateRet(llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)));
+        //     }
+        // }
 
-        if (llvm::verifyFunction(*theFunction))
+        std::string errMsg;
+        llvm::raw_string_ostream errStream(errMsg);
+        if (llvm::verifyFunction(*theFunction, &errStream))
         {
-            return theFunction;
+            errStream.flush();
+            logError(errMsg);
+
+            theFunction->eraseFromParent();
+            return nullptr;
         }
 
-        theFunction->eraseFromParent();
-        return nullptr;
+        return theFunction;
     }
 
     llvm::Value *CodegenLlvmIr::visitExpressionStmt(
         const ast::statement::Expression &stmt)
     {
         return visit(stmt.Expr);
+    }
+
+    llvm::Value *CodegenLlvmIr::visitReturnStmt(
+        const ast::statement::Return &stmt)
+    {
+        if (llvm::Value *expr = visit(stmt.Expr))
+        {
+            return Builder_->CreateRet(expr);
+        }
+
+        return nullptr;
     }
     //<
 
@@ -122,7 +148,7 @@ namespace codegen
         if (!L)
             return nullptr;
 
-        llvm::Value *R = visit(expr.LHS);
+        llvm::Value *R = visit(expr.RHS);
         if (!R)
             return nullptr;
 
@@ -161,7 +187,7 @@ namespace codegen
         }
 
         std::vector<llvm::Value *> argsV;
-        for (unsigned i = 0, e = argsV.size(); i != e; ++i)
+        for (unsigned i = 0, e = expr.Args.size(); i != e; ++i)
         {
             auto arg = visit(expr.Args[i]);
             if (!arg)

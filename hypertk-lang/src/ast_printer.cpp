@@ -39,6 +39,16 @@ namespace ast
         visit(stmt.Expr);
         decreaseIndent();
     }
+
+    void SimplePrinter::visitReturnStmt(const statement::Return &stmt)
+    {
+        printIndent();
+        std::cout << "ReturnStatement\n";
+
+        increaseIndent();
+        visit(stmt.Expr);
+        decreaseIndent();
+    }
     //<
 
     //> Print expressions

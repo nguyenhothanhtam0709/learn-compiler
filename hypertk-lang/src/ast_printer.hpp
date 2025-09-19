@@ -23,6 +23,7 @@ namespace ast
         //> Print statements
         void visitFunctionStmt(const statement::Function &stmt);
         void visitExpressionStmt(const statement::Expression &stmt);
+        void visitReturnStmt(const statement::Return &stmt);
         //<
 
         //> Print expressions

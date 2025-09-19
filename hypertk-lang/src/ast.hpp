@@ -107,10 +107,12 @@ namespace ast
     {
         struct Function;
         struct Expression;
+        struct Return;
 
         using FunctionPtr = std::unique_ptr<Function>;
         using ExpressionPtr = std::unique_ptr<Expression>;
-        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr>;
+        using ReturnPtr = std::unique_ptr<Return>;
+        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr>;
 
         struct Function : private Uncopyable
         {
@@ -131,6 +133,13 @@ namespace ast
             Expression(expression::ExprPtr expr) : Expr{std::move(expr)} {}
         };
 
+        struct Return : private Uncopyable
+        {
+            expression::ExprPtr Expr;
+
+            Return(expression::ExprPtr expr) : Expr{std::move(expr)} {}
+        };
+
         template <typename R>
         class Visitor
         {
@@ -147,6 +156,10 @@ namespace ast
                         [this](const ExpressionPtr &stmt)
                         {
                             return visitExpressionStmt(*stmt);
+                        },
+                        [this](const ReturnPtr &stmt)
+                        {
+                            return visitReturnStmt(*stmt);
                         }},
                     stmt);
             }
@@ -154,12 +167,12 @@ namespace ast
         protected:
             virtual R visitFunctionStmt(const Function &stmt) = 0;
             virtual R visitExpressionStmt(const Expression &stmt) = 0;
+            virtual R visitReturnStmt(const Return &stmt) = 0;
         };
     } // namespace stmt
 
     using Program = std::vector<statement::StmtPtr>;
 
-    
 } // namespace ast
 
 #endif
