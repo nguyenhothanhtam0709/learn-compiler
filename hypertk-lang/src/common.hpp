@@ -1,6 +1,9 @@
 #ifndef HYPERTK_COMMON_HPP
 #define HYPERTK_COMMON_HPP
 
+/** @brief Enable compiler optimization pass */
+#define ENABLE_COMPILER_OPTIMIZATION_PASS
+
 template <class... Ts>
 struct overloaded : Ts...
 {

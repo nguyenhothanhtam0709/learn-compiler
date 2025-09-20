@@ -22,6 +22,7 @@ int main()
         // printer.print(ast_.value());
 
         hypertk::RuntimeLLVM runtime;
+        runtime.initializeModuleAndManagers();
         runtime.printIR(ast_.value());
     }
 

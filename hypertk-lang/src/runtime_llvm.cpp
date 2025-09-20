@@ -3,6 +3,23 @@
 #include <string>
 #include <iostream>
 
+#include "runtime_llvm.hpp"
+#include "ast.hpp"
+#include "error.hpp"
+#include "common.hpp"
+#ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
+#include "llvm/IR/PassManager.h"
+#include "llvm/IR/PassInstrumentation.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#endif
+
 #include "llvm/IR/Value.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
@@ -12,18 +29,51 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include "runtime_llvm.hpp"
-#include "ast.hpp"
-#include "error.hpp"
-
 namespace hypertk
 {
     RuntimeLLVM::RuntimeLLVM()
         : ast::statement::Visitor<llvm::Value *>(),
-          ast::expression::Visitor<llvm::Value *>(),
-          TheContext_{std::make_unique<llvm::LLVMContext>()},
-          Builder_{std::make_unique<llvm::IRBuilder<>>(*TheContext_)},
-          TheModule_{std::make_unique<llvm::Module>("HyperTk codegen", *TheContext_)} {}
+          ast::expression::Visitor<llvm::Value *>()
+    {
+    }
+
+    void RuntimeLLVM::initializeModuleAndManagers()
+    {
+        // Open new context and module
+        TheContext_ = std::make_unique<llvm::LLVMContext>();
+        TheModule_ = std::make_unique<llvm::Module>("HyperTk Runtime", *TheContext_);
+
+        // Create a new builder for the module
+        Builder_ = std::make_unique<llvm::IRBuilder<>>(*TheContext_);
+
+#ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
+        // Create new pass and analysis manager
+        TheFPM_ = std::make_unique<llvm::FunctionPassManager>();
+        TheLAM_ = std::make_unique<llvm::LoopAnalysisManager>();
+        TheFAM_ = std::make_unique<llvm::FunctionAnalysisManager>();
+        TheCGAM_ = std::make_unique<llvm::CGSCCAnalysisManager>();
+        TheMAM_ = std::make_unique<llvm::ModuleAnalysisManager>();
+        ThePIC_ = std::make_unique<llvm::PassInstrumentationCallbacks>();
+        TheSI_ = std::make_unique<llvm::StandardInstrumentations>(*TheContext_, /* Debug logging*/ true);
+        TheSI_->registerCallbacks(*ThePIC_, TheMAM_.get());
+
+        // Add transformation passes
+        // Do simple "peephole" optimizations and bit-twiddling optzns.
+        TheFPM_->addPass(llvm::InstCombinePass());
+        // Reassociate expressions.
+        TheFPM_->addPass(llvm::ReassociatePass());
+        // Eliminate Common SubExpressions.
+        TheFPM_->addPass(llvm::GVNPass());
+        // Simplify the control flow graph (deleting unreachable blocks, etc).
+        TheFPM_->addPass(llvm::SimplifyCFGPass());
+
+        // Register analysis passes used in these transform passes.
+        llvm::PassBuilder pBuilder;
+        pBuilder.registerModuleAnalyses(*TheMAM_);
+        pBuilder.registerFunctionAnalyses(*TheFAM_);
+        pBuilder.crossRegisterProxies(*TheLAM_, *TheFAM_, *TheCGAM_, *TheMAM_);
+#endif
+    }
 
     void RuntimeLLVM::printIR(const ast::Program &program)
     {
@@ -99,6 +149,11 @@ namespace hypertk
             theFunction->eraseFromParent();
             return nullptr;
         }
+
+#ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
+        // Run the optimizer on the function.
+        TheFPM_->run(*theFunction, *TheFAM_);
+#endif
 
         return theFunction;
     }
