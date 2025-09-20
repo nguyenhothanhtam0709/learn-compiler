@@ -1,5 +1,5 @@
-#ifndef HYPERTK_CODEGEN_LLVM_IR_HPP
-#define HYPERTK_CODEGEN_LLVM_IR_HPP
+#ifndef HYPERTK_RUNTIME_LLVM_HPP
+#define HYPERTK_RUNTIME_LLVM_HPP
 
 #include <memory>
 #include <map>
