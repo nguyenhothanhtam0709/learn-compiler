@@ -177,16 +177,18 @@ namespace parser
 
         //> Parse call expression
         std::vector<ast::expression::ExprPtr> args;
-        while (!check(TokenType::RIGHT_PAREN))
+        if (!check(TokenType::RIGHT_PAREN))
         {
-            if (auto expr_ = parseExpr(); expr_.has_value())
+            do
             {
-                args.push_back(std::move(expr_.value()));
-                consume(TokenType::COMMA, "Expect ','");
-                continue;
-            }
+                if (auto expr_ = parseExpr(); expr_.has_value())
+                {
+                    args.push_back(std::move(expr_.value()));
+                    continue;
+                }
 
-            return std::make_optional<ast::expression::ExprPtr>(); // Have error
+                return std::make_optional<ast::expression::ExprPtr>(); // Have error
+            } while (match(TokenType::COMMA));
         }
         consume(TokenType::RIGHT_PAREN, "Expect ')'");
 
