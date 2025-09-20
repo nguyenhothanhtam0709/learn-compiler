@@ -27,6 +27,9 @@ namespace token
         /** keywords */
         FUNC,   // `func`
         RETURN, // `return`
+        IF,     // `if`
+        THEN,   // `then`
+        ELSE,   // `else`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

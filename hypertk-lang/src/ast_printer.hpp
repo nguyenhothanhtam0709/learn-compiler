@@ -11,6 +11,7 @@ namespace ast
     {
     private:
         int indent_;
+
     public:
         explicit SimplePrinter();
 
@@ -24,6 +25,7 @@ namespace ast
         void visitFunctionStmt(const statement::Function &stmt);
         void visitExpressionStmt(const statement::Expression &stmt);
         void visitReturnStmt(const statement::Return &stmt);
+        void visitIfStmt(const statement::If &stmt);
         //<
 
         //> Print expressions
@@ -36,7 +38,7 @@ namespace ast
         std::string op(ast::BinaryOp op) const noexcept;
         void increaseIndent() noexcept;
         void decreaseIndent() noexcept;
-        void printIndent()const noexcept;
+        void printIndent() const noexcept;
     };
 } // namespace ast
 

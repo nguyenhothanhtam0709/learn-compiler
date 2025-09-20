@@ -49,6 +49,33 @@ namespace ast
         visit(stmt.Expr);
         decreaseIndent();
     }
+
+    void SimplePrinter::visitIfStmt(const statement::If &stmt)
+    {
+        printIndent();
+        std::cout << "IfStatement\n";
+
+        printIndent();
+        std::cout << "Condition: \n";
+        increaseIndent();
+        visit(stmt.Cond);
+        decreaseIndent();
+
+        printIndent();
+        std::cout << "Then: \n";
+        increaseIndent();
+        visit(stmt.Then);
+        decreaseIndent();
+
+        if (stmt.Else.has_value())
+        {
+            printIndent();
+            std::cout << "Else: \n";
+            increaseIndent();
+            visit(stmt.Else.value());
+            decreaseIndent();
+        }
+    }
     //<
 
     //> Print expressions

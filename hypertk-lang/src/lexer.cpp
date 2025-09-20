@@ -91,6 +91,12 @@ namespace lexer
             type = token::TokenType::FUNC;
         else if (lexeme == "return")
             type = token::TokenType::RETURN;
+        else if (lexeme == "if")
+            type = token::TokenType::IF;
+        else if (lexeme == "then")
+            type = token::TokenType::THEN;
+        else if (lexeme == "else")
+            type = token::TokenType::ELSE;
         else
             type = token::TokenType::IDENTIFIER;
 

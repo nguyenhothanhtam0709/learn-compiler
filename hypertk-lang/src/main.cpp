@@ -11,6 +11,7 @@
 #include "ast_printer.hpp"
 #include "runtime_llvm.hpp"
 #include "builtin.hpp"
+#include "error.hpp"
 
 int main()
 {
@@ -28,6 +29,8 @@ int main()
     parser::Parser parser_{lexer::Lexer{src}};
 
     auto ast_ = parser_.parse();
+    if (error::hasError())
+        return EXIT_FAILURE;
     if (ast_.has_value())
     {
         // ast::SimplePrinter printer;
@@ -42,7 +45,11 @@ int main()
         runtime.declareBuiltInFunctions();
 #endif
         runtime.genIR(ast_.value());
+        if (error::hasError())
+            return EXIT_FAILURE;
+
         runtime.printIR();
+
 #ifdef ENABLE_BASIC_JIT_COMPILER
         runtime.eval();
 #endif

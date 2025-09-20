@@ -242,6 +242,11 @@ namespace hypertk
 
         return nullptr;
     }
+
+    llvm::Value *RuntimeLLVM::visitIfStmt(
+        const ast::statement::If &stmt) {
+            return nullptr;
+        }
     //<
 
     //> expressions

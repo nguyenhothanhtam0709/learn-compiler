@@ -108,11 +108,13 @@ namespace ast
         struct Function;
         struct Expression;
         struct Return;
+        struct If;
 
         using FunctionPtr = std::unique_ptr<Function>;
         using ExpressionPtr = std::unique_ptr<Expression>;
         using ReturnPtr = std::unique_ptr<Return>;
-        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr>;
+        using IfPtr = std::unique_ptr<If>;
+        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr, IfPtr>;
 
         struct Function : private Uncopyable
         {
@@ -140,6 +142,18 @@ namespace ast
             Return(expression::ExprPtr expr) : Expr{std::move(expr)} {}
         };
 
+        struct If : private Uncopyable
+        {
+            expression::ExprPtr Cond;
+            StmtPtr Then;
+            std::optional<StmtPtr> Else;
+
+            If(expression::ExprPtr cond, StmtPtr then_, std::optional<StmtPtr> else_ = std::nullopt)
+                : Cond{std::move(cond)},
+                  Then{std::move(then_)},
+                  Else{else_.has_value() ? std::move(else_) : std::nullopt} {}
+        };
+
         template <typename R>
         class Visitor
         {
@@ -160,6 +174,10 @@ namespace ast
                         [this](const ReturnPtr &stmt)
                         {
                             return visitReturnStmt(*stmt);
+                        },
+                        [this](const IfPtr &stmt)
+                        {
+                            return visitIfStmt(*stmt);
                         }},
                     stmt);
             }
@@ -168,6 +186,7 @@ namespace ast
             virtual R visitFunctionStmt(const Function &stmt) = 0;
             virtual R visitExpressionStmt(const Expression &stmt) = 0;
             virtual R visitReturnStmt(const Return &stmt) = 0;
+            virtual R visitIfStmt(const If &stmt) = 0;
         };
     } // namespace stmt
 

@@ -46,6 +46,8 @@ namespace parser
     {
         if (match(TokenType::RETURN))
             return parseReturnStmt();
+        if (match(TokenType::IF))
+            return parseIfStmt();
         return parseExpressionStmt();
     }
 
@@ -82,7 +84,7 @@ namespace parser
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
-        return std::make_unique<ast::statement::Function>(name.lexeme, std::move(args), std::move(stmts));
+        return std::make_unique<ast::statement::Function>(std::move(name.lexeme), std::move(args), std::move(stmts));
     }
 
     std::optional<ast::statement::ExpressionPtr> Parser::parseExpressionStmt()
@@ -94,7 +96,7 @@ namespace parser
             return stmt;
         }
 
-        return std::make_optional<ast::statement::ExpressionPtr>();
+        return std::nullopt;
     }
 
     std::optional<ast::statement::ReturnPtr> Parser::parseReturnStmt()
@@ -106,7 +108,34 @@ namespace parser
             return stmt;
         }
 
-        return std::make_optional<ast::statement::ReturnPtr>();
+        return std::nullopt;
+    }
+
+    std::optional<ast::statement::IfPtr> Parser::parseIfStmt()
+    {
+        consume(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+        auto cond = parseExpr();
+        if (!cond.has_value())
+            return std::nullopt;
+        consume(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+
+        auto then_ = parseStatement();
+        if (!then_.has_value())
+            return std::nullopt;
+
+        std::optional<ast::statement::StmtPtr> else_ = std::nullopt;
+        if (match(TokenType::ELSE))
+        {
+            if (else_ = parseStatement(); !else_.has_value())
+                return std::nullopt;
+        }
+
+        return std::make_unique<ast::statement::If>(
+            std::move(cond.value()),
+            std::move(then_.value()),
+            else_.has_value()
+                ? std::move(else_.value())
+                : (std::optional<ast::statement::StmtPtr>)std::nullopt);
     }
     //>
 
@@ -115,7 +144,7 @@ namespace parser
     {
         auto LHS = parsePrimary();
         if (!LHS.has_value())
-            return std::make_optional<ast::expression::ExprPtr>();
+            return std::nullopt;
 
         return parseBinaryRHS(0, std::move(LHS.value()));
     }
@@ -139,7 +168,7 @@ namespace parser
             // Parse the primary expression after the binary operator.
             auto RHS = parsePrimary();
             if (!RHS.has_value())
-                return std::make_optional<ast::expression::ExprPtr>();
+                return std::nullopt;
 
             // If BinOp binds less tightly with RHS than the operator after RHS, let
             // the pending operator take RHS as its LHS.
@@ -148,7 +177,7 @@ namespace parser
             {
                 RHS = parseBinaryRHS(tokenPrec + 1, std::move(RHS.value()));
                 if (!RHS.has_value())
-                    return std::make_optional<ast::expression::ExprPtr>();
+                    return std::nullopt;
             }
 
             // Merge LHS/RHS.
@@ -166,7 +195,7 @@ namespace parser
             return parseParen();
 
         errorAtCurrent("Unexpected token.");
-        return std::make_optional<ast::expression::ExprPtr>();
+        return std::nullopt;
     }
 
     std::optional<ast::expression::ExprPtr> Parser::parseIdentifier()
@@ -187,7 +216,7 @@ namespace parser
                     continue;
                 }
 
-                return std::make_optional<ast::expression::ExprPtr>(); // Have error
+                return std::nullopt; // Have error
             } while (match(TokenType::COMMA));
         }
         consume(TokenType::RIGHT_PAREN, "Expect ')'");

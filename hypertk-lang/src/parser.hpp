@@ -29,6 +29,7 @@ namespace parser
         std::optional<ast::statement::FunctionPtr> parseFunctionDeclaration();
         std::optional<ast::statement::ExpressionPtr> parseExpressionStmt();
         std::optional<ast::statement::ReturnPtr> parseReturnStmt();
+        std::optional<ast::statement::IfPtr> parseIfStmt();
         //<
 
         //> Parse expression
