@@ -1,7 +1,7 @@
 CXX = clang++
 LLVM_CONFIG = llvm-config
 CXXFLAGS = -Wall -std=c++20 `$(LLVM_CONFIG) --cxxflags`
-LDFLAGS = `$(LLVM_CONFIG) --ldflags --system-libs --libs core irreader support`
+LDFLAGS = `$(LLVM_CONFIG) --cxxflags --ldflags --system-libs --libs core orcjit native`
 
 TARGET = hypertk
 SRC    = $(wildcard src/*.cpp)
