@@ -161,12 +161,37 @@ namespace parser
         if (match(TokenType::NUMBER))
             return std::make_unique<ast::expression::Number>(std::stod(previous_.lexeme));
         if (match(TokenType::IDENTIFIER))
-            return std::make_unique<ast::expression::Variable>(previous_.lexeme);
+            return parseIdentifier();
         if (match(TokenType::LEFT_PAREN))
             return parseParen();
 
         errorAtCurrent("Unexpected token.");
         return std::make_optional<ast::expression::ExprPtr>();
+    }
+
+    std::optional<ast::expression::ExprPtr> Parser::parseIdentifier()
+    {
+        token::Token name = std::move(previous_);
+        if (!match(TokenType::LEFT_PAREN))
+            return std::make_unique<ast::expression::Variable>(std::move(name.lexeme));
+
+        //> Parse call expression
+        std::vector<ast::expression::ExprPtr> args;
+        while (!check(TokenType::RIGHT_PAREN))
+        {
+            if (auto expr_ = parseExpr(); expr_.has_value())
+            {
+                args.push_back(std::move(expr_.value()));
+                consume(TokenType::COMMA, "Expect ','");
+                continue;
+            }
+
+            return std::make_optional<ast::expression::ExprPtr>(); // Have error
+        }
+        consume(TokenType::RIGHT_PAREN, "Expect ')'");
+
+        return std::make_unique<ast::expression::Call>(std::move(name.lexeme), std::move(args));
+        //<
     }
 
     /// @brief parenexpr ::= '(' expression ')'

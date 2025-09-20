@@ -36,6 +36,7 @@ namespace parser
         std::optional<ast::expression::ExprPtr> parseBinaryRHS(int exprPrec, ast::expression::ExprPtr LHS);
         std::optional<ast::expression::ExprPtr> parsePrimary();
         std::optional<ast::expression::ExprPtr> parseParen();
+        std::optional<ast::expression::ExprPtr> parseIdentifier();
         int getTokenPrecedence(token::TokenType type);
         //< Parse expression
 

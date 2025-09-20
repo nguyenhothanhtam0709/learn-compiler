@@ -20,7 +20,7 @@ int main()
         }
 
         func main() {
-            return 0;
+            return foo(1, 2);
         }
     )";
     parser::Parser parser_{lexer::Lexer{src}};
