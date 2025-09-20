@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 
+#include "common.hpp"
 #include "lexer.hpp"
 #include "token.hpp"
 #include "ast.hpp"
@@ -12,7 +13,16 @@
 
 int main()
 {
-    std::string src = "func foo(a,b) { a*a + 2*a*b + b*b; return a*a + 2*a*b;}";
+    std::string src = R"(
+        func foo(a,b) { 
+            a*a + 2*a*b + b*b;
+            return a*a + 2*a*b;
+        }
+
+        func main() {
+            return 0;
+        }
+    )";
     parser::Parser parser_{lexer::Lexer{src}};
 
     auto ast_ = parser_.parse();
@@ -22,8 +32,15 @@ int main()
         // printer.print(ast_.value());
 
         hypertk::RuntimeLLVM runtime;
+#ifdef ENABLE_BASIC_JIT_COMPILER
+        runtime.initializeJIT();
+#endif
         runtime.initializeModuleAndManagers();
-        runtime.printIR(ast_.value());
+        runtime.genIR(ast_.value());
+        runtime.printIR();
+#ifdef ENABLE_BASIC_JIT_COMPILER
+        runtime.eval();
+#endif
     }
 
     // lexer::Lexer l{src};

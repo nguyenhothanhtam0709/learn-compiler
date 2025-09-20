@@ -4,9 +4,25 @@
 #include <iostream>
 
 #include "runtime_llvm.hpp"
+#include "common.hpp"
 #include "ast.hpp"
 #include "error.hpp"
-#include "common.hpp"
+#ifdef ENABLE_BASIC_JIT_COMPILER
+#include "jit.h"
+#endif
+
+#include "llvm/IR/Value.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/Support/raw_ostream.h"
+#ifdef ENABLE_BASIC_JIT_COMPILER
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#endif
 #ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/PassInstrumentation.h"
@@ -20,15 +36,6 @@
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #endif
 
-#include "llvm/IR/Value.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/raw_ostream.h"
-
 namespace hypertk
 {
     RuntimeLLVM::RuntimeLLVM()
@@ -37,11 +44,27 @@ namespace hypertk
     {
     }
 
+    void RuntimeLLVM::printIR()
+    {
+        TheModule_->print(llvm::errs(), nullptr);
+    }
+
+    llvm::Value *RuntimeLLVM::genIR(const ast::Program &program)
+    {
+        for (const auto &stmt : program)
+            visit(stmt);
+
+        return nullptr;
+    }
+
     void RuntimeLLVM::initializeModuleAndManagers()
     {
         // Open new context and module
         TheContext_ = std::make_unique<llvm::LLVMContext>();
         TheModule_ = std::make_unique<llvm::Module>("HyperTk Runtime", *TheContext_);
+#ifdef ENABLE_BASIC_JIT_COMPILER
+        TheModule_->setDataLayout(TheJIT_->getDataLayout());
+#endif
 
         // Create a new builder for the module
         Builder_ = std::make_unique<llvm::IRBuilder<>>(*TheContext_);
@@ -75,20 +98,50 @@ namespace hypertk
 #endif
     }
 
-    void RuntimeLLVM::printIR(const ast::Program &program)
+#ifdef ENABLE_BASIC_JIT_COMPILER
+    bool RuntimeLLVM::eval()
     {
-        genIR(program);
+        if (!TheJIT_)
+        {
+            logError("JIT compiler must be initialized first.");
+            return false;
+        }
+        if (!TheModule_)
+        {
+            logError("Module must be initialized first.");
+            return false;
+        }
 
-        TheModule_->print(llvm::errs(), nullptr);
+        // Create a ResourceTracker to track JIT'd memory allocated to our
+        // anonymous expression -- that way we can free it after executing.
+        auto RT = TheJIT_->getMainJITDylib().createResourceTracker();
+
+        auto TSM = llvm::orc::ThreadSafeModule(std::move(TheModule_), std::move(TheContext_));
+        ExitOnErr(TheJIT_->addModule(std::move(TSM), RT));
+        // initializeModuleAndManagers();
+
+        // Search the JIT for the `main` symbol.
+        // HyperTk expect a `main` function.
+        auto mainSymbol = ExitOnErr(TheJIT_->lookup("main"));
+
+        /// @details Because the LLVM JIT compiler matches the native platform ABI,
+        /// this means that you can just cast the result pointer to a function pointer
+        /// of that type and call it directly.
+        double (*FP)() = mainSymbol.getAddress().toPtr<double (*)()>();
+        std::cout << "Eval " << FP() << "\n";
+
+        return true;
     }
 
-    llvm::Value *RuntimeLLVM::genIR(const ast::Program &program)
+    void RuntimeLLVM::initializeJIT()
     {
-        for (const auto &stmt : program)
-            visit(stmt);
+        llvm::InitializeNativeTarget();
+        llvm::InitializeNativeTargetAsmPrinter();
+        llvm::InitializeNativeTargetAsmParser();
 
-        return nullptr;
+        TheJIT_ = ExitOnErr(HyperTkJIT::Create());
     }
+#endif
 
     //> statements
     llvm::Value *RuntimeLLVM::visitFunctionStmt(

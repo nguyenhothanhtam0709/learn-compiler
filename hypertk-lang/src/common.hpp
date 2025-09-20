@@ -3,6 +3,8 @@
 
 /** @brief Enable compiler optimization pass */
 #define ENABLE_COMPILER_OPTIMIZATION_PASS
+/** @brief Enable basic jit compiler */
+#define ENABLE_BASIC_JIT_COMPILER
 
 template <class... Ts>
 struct overloaded : Ts...

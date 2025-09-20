@@ -5,13 +5,17 @@
 #include <map>
 #include <string>
 
-#include "ast.hpp"
 #include "common.hpp"
+#include "ast.hpp"
+#ifdef ENABLE_BASIC_JIT_COMPILER
+#include "jit.h"
+#endif
 
 #include "llvm/IR/Value.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Error.h"
 #ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/PassInstrumentation.h"
@@ -30,17 +34,29 @@ namespace hypertk
     public:
         RuntimeLLVM();
 
-        void printIR(const ast::Program &program);
+        /** @brief Print LLVM IR */
+        void printIR();
+        /** @brief Compile AST to LLVM IR */
         llvm::Value *genIR(const ast::Program &program);
 
         /** @brief Initialize module, compiler pass, ... */
         void initializeModuleAndManagers();
+#ifdef ENABLE_BASIC_JIT_COMPILER
+        /** Eval the program */
+        bool eval();
+        /** Enable JIT compiler */
+        void initializeJIT();
+#endif
 
     private:
         std::unique_ptr<llvm::LLVMContext> TheContext_ = nullptr;
         std::unique_ptr<llvm::IRBuilder<>> Builder_ = nullptr;
         std::unique_ptr<llvm::Module> TheModule_ = nullptr;
         std::map<std::string, llvm::Value *> NamedValues_;
+        llvm::ExitOnError ExitOnErr;
+#ifdef ENABLE_BASIC_JIT_COMPILER
+        std::unique_ptr<HyperTkJIT> TheJIT_ = nullptr;
+#endif
 #ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
         /** @brief the function pass manager */
         std::unique_ptr<llvm::FunctionPassManager> TheFPM_ = nullptr;
