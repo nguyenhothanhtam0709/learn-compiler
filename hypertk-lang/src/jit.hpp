@@ -3,7 +3,6 @@
 
 #include "common.hpp"
 
-#ifdef ENABLE_BASIC_JIT_COMPILER
 #include <memory>
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -111,6 +110,5 @@ namespace hypertk
         }
     };
 }
-#endif
 
 #endif

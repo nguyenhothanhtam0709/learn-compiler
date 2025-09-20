@@ -8,7 +8,7 @@
 #include "common.hpp"
 #include "ast.hpp"
 #ifdef ENABLE_BASIC_JIT_COMPILER
-#include "jit.h"
+#include "jit.hpp"
 #endif
 
 #include "llvm/IR/Value.h"
