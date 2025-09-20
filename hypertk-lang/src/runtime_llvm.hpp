@@ -13,9 +13,9 @@
 #include "ast.hpp"
 #include "common.hpp"
 
-namespace codegen
+namespace hypertk
 {
-    class CodegenLlvmIr
+    class RuntimeLLVM
         : private Uncopyable,
           protected ast::statement::Visitor<llvm::Value *>,
           protected ast::expression::Visitor<llvm::Value *>
@@ -27,7 +27,7 @@ namespace codegen
         std::map<std::string, llvm::Value *> NamedValues_;
 
     public:
-        CodegenLlvmIr();
+        RuntimeLLVM();
 
         void printIR(const ast::Program &program);
         llvm::Value *genIR(const ast::Program &program);

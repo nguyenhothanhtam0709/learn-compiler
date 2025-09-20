@@ -12,27 +12,27 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include "codegen_llvm_ir.hpp"
+#include "runtime_llvm.hpp"
 #include "ast.hpp"
 #include "error.hpp"
 
-namespace codegen
+namespace hypertk
 {
-    CodegenLlvmIr::CodegenLlvmIr()
+    RuntimeLLVM::RuntimeLLVM()
         : ast::statement::Visitor<llvm::Value *>(),
           ast::expression::Visitor<llvm::Value *>(),
           TheContext_{std::make_unique<llvm::LLVMContext>()},
           Builder_{std::make_unique<llvm::IRBuilder<>>(*TheContext_)},
           TheModule_{std::make_unique<llvm::Module>("HyperTk codegen", *TheContext_)} {}
 
-    void CodegenLlvmIr::printIR(const ast::Program &program)
+    void RuntimeLLVM::printIR(const ast::Program &program)
     {
         genIR(program);
 
         TheModule_->print(llvm::errs(), nullptr);
     }
 
-    llvm::Value *CodegenLlvmIr::genIR(const ast::Program &program)
+    llvm::Value *RuntimeLLVM::genIR(const ast::Program &program)
     {
         for (const auto &stmt : program)
             visit(stmt);
@@ -41,7 +41,7 @@ namespace codegen
     }
 
     //> statements
-    llvm::Value *CodegenLlvmIr::visitFunctionStmt(
+    llvm::Value *RuntimeLLVM::visitFunctionStmt(
         const ast::statement::Function &stmt)
     {
         llvm::Function *theFunction = TheModule_->getFunction(stmt.Name);
@@ -103,13 +103,13 @@ namespace codegen
         return theFunction;
     }
 
-    llvm::Value *CodegenLlvmIr::visitExpressionStmt(
+    llvm::Value *RuntimeLLVM::visitExpressionStmt(
         const ast::statement::Expression &stmt)
     {
         return visit(stmt.Expr);
     }
 
-    llvm::Value *CodegenLlvmIr::visitReturnStmt(
+    llvm::Value *RuntimeLLVM::visitReturnStmt(
         const ast::statement::Return &stmt)
     {
         if (llvm::Value *expr = visit(stmt.Expr))
@@ -122,13 +122,13 @@ namespace codegen
     //<
 
     //> expressions
-    llvm::Value *CodegenLlvmIr::visitNumberExpr(
+    llvm::Value *RuntimeLLVM::visitNumberExpr(
         const ast::expression::Number &expr)
     {
         return llvm::ConstantFP::get(*TheContext_, llvm::APFloat(expr.Val));
     }
 
-    llvm::Value *CodegenLlvmIr::visitVariableExpr(
+    llvm::Value *RuntimeLLVM::visitVariableExpr(
         const ast::expression::Variable &expr)
     {
         llvm::Value *v = NamedValues_[expr.Name];
@@ -141,7 +141,7 @@ namespace codegen
         return v;
     }
 
-    llvm::Value *CodegenLlvmIr::visitBinaryExpr(
+    llvm::Value *RuntimeLLVM::visitBinaryExpr(
         const ast::expression::Binary &expr)
     {
         llvm::Value *L = visit(expr.LHS);
@@ -168,7 +168,7 @@ namespace codegen
         }
     }
 
-    llvm::Value *CodegenLlvmIr::visitCallExpr(
+    llvm::Value *RuntimeLLVM::visitCallExpr(
         const ast::expression::Call &expr)
     {
         // Look up the name in the global module table.
@@ -199,7 +199,7 @@ namespace codegen
     }
     //<
 
-    void CodegenLlvmIr::logError(const std::string &msg)
+    void RuntimeLLVM::logError(const std::string &msg)
     {
         error::error(0, msg);
     }

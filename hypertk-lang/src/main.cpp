@@ -8,7 +8,7 @@
 #include "ast.hpp"
 #include "parser.hpp"
 #include "ast_printer.hpp"
-#include "codegen_llvm_ir.hpp"
+#include "runtime_llvm.hpp"
 
 int main()
 {
@@ -21,8 +21,8 @@ int main()
         // ast::SimplePrinter printer;
         // printer.print(ast_.value());
 
-        codegen::CodegenLlvmIr gen;
-        gen.printIR(ast_.value());
+        hypertk::RuntimeLLVM runtime;
+        runtime.printIR(ast_.value());
     }
 
     // lexer::Lexer l{src};
