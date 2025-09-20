@@ -47,6 +47,9 @@ namespace hypertk
         /** Enable JIT compiler */
         void initializeJIT();
 #endif
+#ifdef ENABLE_BUILTIN_FUNCTIONS
+        void declareBuiltInFunctions();
+#endif
 
     private:
         std::unique_ptr<llvm::LLVMContext> TheContext_ = nullptr;

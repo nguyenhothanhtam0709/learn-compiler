@@ -5,6 +5,8 @@
 #define ENABLE_COMPILER_OPTIMIZATION_PASS
 /** @brief Enable basic jit compiler */
 #define ENABLE_BASIC_JIT_COMPILER
+/** @brief Enable built-in functions */
+#define ENABLE_BUILTIN_FUNCTIONS
 
 template <class... Ts>
 struct overloaded : Ts...

@@ -143,6 +143,21 @@ namespace hypertk
     }
 #endif
 
+#ifdef ENABLE_BUILTIN_FUNCTIONS
+    void RuntimeLLVM::declareBuiltInFunctions()
+    {
+        //> define `double @putchard(double)`
+        llvm::FunctionType *putchardFT = llvm::FunctionType::get(llvm::Type::getDoubleTy(*TheContext_), llvm::Type::getDoubleTy(*TheContext_), false);
+        llvm::Function::Create(putchardFT, llvm::Function::ExternalLinkage, "putchard", TheModule_.get());
+        //>
+
+        //> define `double @printd(double)`
+        llvm::FunctionType *printdFT = llvm::FunctionType::get(llvm::Type::getDoubleTy(*TheContext_), llvm::Type::getDoubleTy(*TheContext_), false);
+        llvm::Function::Create(printdFT, llvm::Function::ExternalLinkage, "printd", TheModule_.get());
+        //>
+    }
+#endif
+
     //> statements
     llvm::Value *RuntimeLLVM::visitFunctionStmt(
         const ast::statement::Function &stmt)

@@ -10,6 +10,7 @@
 #include "parser.hpp"
 #include "ast_printer.hpp"
 #include "runtime_llvm.hpp"
+#include "builtin.hpp"
 
 int main()
 {
@@ -20,6 +21,7 @@ int main()
         }
 
         func main() {
+            printd(1);
             return foo(1, 2);
         }
     )";
@@ -36,6 +38,9 @@ int main()
         runtime.initializeJIT();
 #endif
         runtime.initializeModuleAndManagers();
+#ifdef ENABLE_BUILTIN_FUNCTIONS
+        runtime.declareBuiltInFunctions();
+#endif
         runtime.genIR(ast_.value());
         runtime.printIR();
 #ifdef ENABLE_BASIC_JIT_COMPILER
