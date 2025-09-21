@@ -10,17 +10,18 @@ namespace token
     enum class TokenType
     {
         /** character tokens */
-        LEFT_PAREN,  // `(`
-        RIGHT_PAREN, // ')'
-        LEFT_BRACE,  // `{`
-        RIGHT_BRACE, // `}`
-        PLUS,        // `+`
-        MINUS,       // `-`
-        STAR,        // `*`
-        SLASH,       // `/`
-        COLON,       // `:`
-        SEMICOLON,   // `;`
-        COMMA,       // `,`
+        LEFT_PAREN,    // `(`
+        RIGHT_PAREN,   // ')'
+        LEFT_BRACE,    // `{`
+        RIGHT_BRACE,   // `}`
+        PLUS,          // `+`
+        MINUS,         // `-`
+        STAR,          // `*`
+        SLASH,         // `/`
+        QUESTION_MARK, // `?`
+        COLON,         // `:`
+        SEMICOLON,     // `;`
+        COMMA,         // `,`
         /** literals */
         IDENTIFIER, // Identifier
         NUMBER,     // float

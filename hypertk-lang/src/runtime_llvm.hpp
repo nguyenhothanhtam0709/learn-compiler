@@ -92,6 +92,7 @@ namespace hypertk
         llvm::Value *visitNumberExpr(const ast::expression::Number &expr);
         llvm::Value *visitVariableExpr(const ast::expression::Variable &expr);
         llvm::Value *visitBinaryExpr(const ast::expression::Binary &expr);
+        llvm::Value *visitConditionalExpr(const ast::expression::Conditional &expr);
         llvm::Value *visitCallExpr(const ast::expression::Call &expr);
         //<
 

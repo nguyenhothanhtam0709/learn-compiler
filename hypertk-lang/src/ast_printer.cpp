@@ -102,6 +102,30 @@ namespace ast
         decreaseIndent();
     }
 
+    void SimplePrinter::visitConditionalExpr(const expression::Conditional &expr)
+    {
+        printIndent();
+        std::cout << "ConditionalExpression\n";
+
+        printIndent();
+        std::cout << "Condition: \n";
+        increaseIndent();
+        visit(expr.Cond);
+        decreaseIndent();
+
+        printIndent();
+        std::cout << "Then: \n";
+        increaseIndent();
+        visit(expr.Then);
+        decreaseIndent();
+
+        printIndent();
+        std::cout << "Else: \n";
+        increaseIndent();
+        visit(expr.Else);
+        decreaseIndent();
+    }
+
     void SimplePrinter::visitCallExpr(const expression::Call &expr) {}
     //<
 

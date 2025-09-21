@@ -25,13 +25,15 @@ namespace ast
         struct Number;
         struct Variable;
         struct Binary;
+        struct Conditional;
         struct Call;
 
         using NumberPtr = std::unique_ptr<Number>;
         using VariablePtr = std::unique_ptr<Variable>;
         using BinaryPtr = std::unique_ptr<Binary>;
+        using ConditionalPtr = std::unique_ptr<Conditional>;
         using CallPtr = std::unique_ptr<Call>;
-        using ExprPtr = std::variant<NumberPtr, VariablePtr, BinaryPtr, CallPtr>;
+        using ExprPtr = std::variant<NumberPtr, VariablePtr, BinaryPtr, ConditionalPtr, CallPtr>;
 
         struct Number : private Uncopyable
         {
@@ -54,6 +56,18 @@ namespace ast
 
             Binary(BinaryOp Op, ExprPtr LHS, ExprPtr RHS)
                 : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+        };
+
+        struct Conditional : private Uncopyable
+        {
+            ExprPtr Cond;
+            ExprPtr Then;
+            ExprPtr Else;
+
+            Conditional(expression::ExprPtr cond, ExprPtr then_, ExprPtr else_)
+                : Cond{std::move(cond)},
+                  Then{std::move(then_)},
+                  Else{std::move(else_)} {}
         };
 
         struct Call : private Uncopyable
@@ -87,6 +101,10 @@ namespace ast
                         {
                             return visitBinaryExpr(*expr);
                         },
+                        [this](const ConditionalPtr &expr)
+                        {
+                            return visitConditionalExpr(*expr);
+                        },
                         [this](const CallPtr &expr)
                         {
                             return visitCallExpr(*expr);
@@ -98,6 +116,7 @@ namespace ast
             virtual R visitNumberExpr(const Number &expr) = 0;
             virtual R visitVariableExpr(const Variable &expr) = 0;
             virtual R visitBinaryExpr(const Binary &expr) = 0;
+            virtual R visitConditionalExpr(const Conditional &expr) = 0;
             virtual R visitCallExpr(const Call &expr) = 0;
         };
     } // namespace expr

@@ -245,8 +245,8 @@ namespace hypertk
 
     llvm::Value *RuntimeLLVM::visitIfStmt(
         const ast::statement::If &stmt) {
-            return nullptr;
-        }
+        return nullptr;
+    }
     //<
 
     //> expressions
@@ -294,6 +294,64 @@ namespace hypertk
             logError("Unsupported binary operator.");
             return nullptr;
         }
+    }
+
+    /// @details Using SSA `Phi operation`
+    llvm::Value *RuntimeLLVM::visitConditionalExpr(
+        const ast::expression::Conditional &expr)
+    {
+        llvm::Value *condV = visit(expr.Cond);
+        if (!condV)
+            return nullptr;
+        // Convert condition to a bool by comparing non-equal to 0.0
+        condV = Builder_->CreateFCmpONE(condV,
+                                        llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)),
+                                        "ifcond");
+
+        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
+
+        // Create blocks for the then and else cases. Insert the 'then' block at the
+        // end of the function.
+        llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext_, "then", theFunction);
+        llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext_, "else");
+        llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext_, "ifcont");
+
+        Builder_->CreateCondBr(condV, thenBB, elseBB);
+
+        //> Emit then value.
+        Builder_->SetInsertPoint(thenBB);
+
+        llvm::Value *thenV = visit(expr.Then);
+        if (!thenV)
+            return nullptr;
+
+        Builder_->CreateBr(mergeBB);
+        // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
+        thenBB = Builder_->GetInsertBlock();
+        //<
+
+        //> Emit else block.
+        theFunction->insert(theFunction->end(), elseBB);
+        Builder_->SetInsertPoint(elseBB);
+
+        llvm::Value *elseV = visit(expr.Else);
+        if (!elseV)
+        return nullptr;
+
+        Builder_->CreateBr(mergeBB);
+        // codegen of 'Else' can change the current block, update ElseBB for the PHI.
+        elseBB = Builder_->GetInsertBlock();
+        //<
+
+        //> Emit merge block
+        theFunction->insert(theFunction->end(), mergeBB);
+        Builder_->SetInsertPoint(mergeBB);
+        llvm::PHINode *pn = Builder_->CreatePHI(llvm::Type::getDoubleTy(*TheContext_), 2, "iftmp");
+        pn->addIncoming(thenV, thenBB);
+        pn->addIncoming(elseV, elseBB);
+        //<
+
+        return pn;
     }
 
     llvm::Value *RuntimeLLVM::visitCallExpr(

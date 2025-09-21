@@ -55,6 +55,8 @@ namespace lexer
             return makeToken(token::TokenType::LEFT_BRACE);
         if (c == '}')
             return makeToken(token::TokenType::RIGHT_BRACE);
+        if (c == '?')
+            return makeToken(token::TokenType::QUESTION_MARK);
         if (c == ':')
             return makeToken(token::TokenType::COLON);
         if (c == ';')

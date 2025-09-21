@@ -22,8 +22,11 @@ int main()
         }
 
         func main() {
+            if (1)
             printd(1);
-            return foo(1, 2);
+            else 
+                1*1;
+            return 1 ? 2 : foo(1,2);
         }
     )";
     parser::Parser parser_{lexer::Lexer{src}};

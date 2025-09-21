@@ -32,6 +32,7 @@ namespace ast
         void visitNumberExpr(const expression::Number &expr);
         void visitVariableExpr(const expression::Variable &expr);
         void visitBinaryExpr(const expression::Binary &expr);
+        void visitConditionalExpr(const expression::Conditional &expr);
         void visitCallExpr(const expression::Call &expr);
         //<
 

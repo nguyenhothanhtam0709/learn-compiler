@@ -140,7 +140,8 @@ namespace parser
     //>
 
     //> Parse expression
-    std::optional<ast::expression::ExprPtr> Parser::parseExpr()
+    std::optional<ast::expression::ExprPtr> Parser::parseExpr() { return parseExpr(0); }
+    std::optional<ast::expression::ExprPtr> Parser::parseExpr(int exprPrec)
     {
         auto LHS = parsePrimary();
         if (!LHS.has_value())
@@ -160,6 +161,26 @@ namespace parser
             // consume it, otherwise we are done.
             if (tokenPrec < exprPrec)
                 return LHS;
+
+            //> Parse conditional expression
+            if (match(TokenType::QUESTION_MARK))
+            {
+                auto thenExpr = parseExpr(tokenPrec);
+                if (!thenExpr.has_value())
+                    return std::nullopt;
+
+                consume(TokenType::COLON, "Expect ':' in conditional expression");
+
+                auto elseExpr = parseExpr(tokenPrec);
+                if (!elseExpr.has_value())
+                    return std::nullopt;
+
+                LHS = std::make_unique<ast::expression::Conditional>(std::move(LHS),
+                                                                     std::move(thenExpr.value()),
+                                                                     std::move(elseExpr.value()));
+                continue;
+            }
+            //<
 
             // Okay, we know this is a binop.
             advance();
@@ -240,6 +261,8 @@ namespace parser
     {
         switch (type)
         {
+        case TokenType::QUESTION_MARK:
+            return 5;
         case TokenType::PLUS:
             return 20;
         case TokenType::MINUS:
