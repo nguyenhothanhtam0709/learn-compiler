@@ -26,6 +26,7 @@ namespace ast
         void visitExpressionStmt(const statement::Expression &stmt);
         void visitReturnStmt(const statement::Return &stmt);
         void visitIfStmt(const statement::If &stmt);
+        void visitForStmt(const statement::For &stmt);
         //<
 
         //> Print expressions

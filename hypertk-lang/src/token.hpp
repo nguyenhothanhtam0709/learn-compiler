@@ -22,6 +22,7 @@ namespace token
         COLON,         // `:`
         SEMICOLON,     // `;`
         COMMA,         // `,`
+        EQUAL,         // `=`
         /** literals */
         IDENTIFIER, // Identifier
         NUMBER,     // float
@@ -31,6 +32,8 @@ namespace token
         IF,     // `if`
         THEN,   // `then`
         ELSE,   // `else`
+        FOR,    // `for`
+        IN,     //`in`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

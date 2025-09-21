@@ -30,6 +30,7 @@ namespace parser
         std::optional<ast::statement::ExpressionPtr> parseExpressionStmt();
         std::optional<ast::statement::ReturnPtr> parseReturnStmt();
         std::optional<ast::statement::IfPtr> parseIfStmt();
+        std::optional<ast::statement::ForPtr> parseForStmt();
         //<
 
         //> Parse expression

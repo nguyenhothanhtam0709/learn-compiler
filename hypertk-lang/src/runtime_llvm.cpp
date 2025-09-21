@@ -301,6 +301,13 @@ namespace hypertk
 
         return nullptr;
     }
+
+    llvm::Value *RuntimeLLVM::visitForStmt(
+        const ast::statement::For &tmt)
+    {
+
+        return nullptr;
+    }
     //<
 
     //> expressions

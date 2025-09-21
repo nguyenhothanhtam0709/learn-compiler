@@ -86,6 +86,7 @@ namespace hypertk
         llvm::Value *visitExpressionStmt(const ast::statement::Expression &stmt);
         llvm::Value *visitReturnStmt(const ast::statement::Return &stmt);
         llvm::Value *visitIfStmt(const ast::statement::If &stmt);
+        llvm::Value *visitForStmt(const ast::statement::For &tmt);
         //<
 
         //> expressions

@@ -21,6 +21,11 @@ int main()
             return a*a + 2*a*b;
         }
 
+        func printstar(n) {
+            for i = 1, i < n, 1.0 in
+                putchard(42);
+        }
+
         func main() {
             if (0) printd(3);
 

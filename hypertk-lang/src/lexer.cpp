@@ -63,6 +63,8 @@ namespace lexer
             return makeToken(token::TokenType::SEMICOLON);
         if (c == ',')
             return makeToken(token::TokenType::COMMA);
+        if (c == '=')
+            return makeToken(token::TokenType::EQUAL);
 
         return errorToken(std::string("Unexpected character '") + c + "'.");
     }
@@ -99,6 +101,10 @@ namespace lexer
             type = token::TokenType::THEN;
         else if (lexeme == "else")
             type = token::TokenType::ELSE;
+        else if (lexeme == "for")
+            type = token::TokenType::FOR;
+        else if (lexeme == "in")
+            type = token::TokenType::IN;
         else
             type = token::TokenType::IDENTIFIER;
 

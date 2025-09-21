@@ -76,6 +76,8 @@ namespace ast
             decreaseIndent();
         }
     }
+
+    void SimplePrinter::visitForStmt(const statement::For &stmt) {}
     //<
 
     //> Print expressions

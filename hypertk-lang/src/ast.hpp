@@ -128,12 +128,14 @@ namespace ast
         struct Expression;
         struct Return;
         struct If;
+        struct For;
 
         using FunctionPtr = std::unique_ptr<Function>;
         using ExpressionPtr = std::unique_ptr<Expression>;
         using ReturnPtr = std::unique_ptr<Return>;
         using IfPtr = std::unique_ptr<If>;
-        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr, IfPtr>;
+        using ForPtr = std::unique_ptr<For>;
+        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr, IfPtr, ForPtr>;
 
         struct Function : private Uncopyable
         {
@@ -173,6 +175,24 @@ namespace ast
                   Else{else_.has_value() ? std::move(else_) : std::nullopt} {}
         };
 
+        struct For : private Uncopyable
+        {
+            std::string VarName;
+            expression::ExprPtr Start, End, Step;
+            StmtPtr Body;
+
+            For(const std::string &varName,
+                expression::ExprPtr start,
+                expression::ExprPtr end,
+                expression::ExprPtr step,
+                StmtPtr body)
+                : VarName{std::move(varName)},
+                  Start{std::move(start)},
+                  End{std::move(end)},
+                  Step{std::move(step)},
+                  Body{std::move(body)} {}
+        };
+
         template <typename R>
         class Visitor
         {
@@ -197,6 +217,10 @@ namespace ast
                         [this](const IfPtr &stmt)
                         {
                             return visitIfStmt(*stmt);
+                        },
+                        [this](const ForPtr &stmt)
+                        {
+                            return visitForStmt(*stmt);
                         }},
                     stmt);
             }
@@ -206,6 +230,7 @@ namespace ast
             virtual R visitExpressionStmt(const Expression &stmt) = 0;
             virtual R visitReturnStmt(const Return &stmt) = 0;
             virtual R visitIfStmt(const If &stmt) = 0;
+            virtual R visitForStmt(const For &stmt) = 0;
         };
     } // namespace stmt
 

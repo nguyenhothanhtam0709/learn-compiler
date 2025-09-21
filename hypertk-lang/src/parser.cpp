@@ -48,6 +48,8 @@ namespace parser
             return parseReturnStmt();
         if (match(TokenType::IF))
             return parseIfStmt();
+        if (match(TokenType::FOR))
+            return parseForStmt();
         return parseExpressionStmt();
     }
 
@@ -136,6 +138,43 @@ namespace parser
             else_.has_value()
                 ? std::move(else_.value())
                 : (std::optional<ast::statement::StmtPtr>)std::nullopt);
+    }
+
+    /// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
+    std::optional<ast::statement::ForPtr> Parser::parseForStmt()
+    {
+        consume(TokenType::IDENTIFIER, "expected identifier after for");
+        token::Token nameToken = std::move(previous_);
+
+        consume(TokenType::EQUAL, "expect '=' after variable name.");
+
+        auto start = parseExpr();
+        if (!start.has_value())
+            return std::nullopt;
+
+        consume(TokenType::COMMA, "expected ',' after for start value");
+
+        auto end = parseExpr();
+        if (!end.has_value())
+            return std::nullopt;
+
+        consume(TokenType::COMMA, "expected ',' after for end value");
+
+        auto step = parseExpr();
+        if (!step.has_value())
+            return std::nullopt;
+
+        consume(TokenType::IN, "expected 'in' after for step value");
+
+        auto body = parseStatement();
+        if (!body.has_value())
+            return std::nullopt;
+
+        return std::make_unique<ast::statement::For>(std::move(nameToken.lexeme),
+                                                     std::move(start.value()),
+                                                     std::move(end.value()),
+                                                     std::move(step.value()),
+                                                     std::move(body.value()));
     }
     //>
 
