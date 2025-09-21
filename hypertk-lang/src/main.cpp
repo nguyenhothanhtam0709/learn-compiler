@@ -17,16 +17,21 @@ int main()
 {
     std::string src = R"(
         func foo(a,b) { 
-            a*a + 2*a*b + b*b;
+            // a*a + 2*a*b + b*b;
             return a*a + 2*a*b;
         }
 
         func main() {
+            if (0) printd(3);
+
             if (1)
-            printd(1);
+                printd(1);
             else 
                 1*1;
-            return 1 ? 2 : foo(1,2);
+            
+            printd(foo(1, 2) ? 1 : 2);
+            
+            return 0.0;
         }
     )";
     parser::Parser parser_{lexer::Lexer{src}};

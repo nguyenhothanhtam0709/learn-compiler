@@ -243,8 +243,62 @@ namespace hypertk
         return nullptr;
     }
 
+    /// @details Implement an important SSA operation: the `Phi operation`
     llvm::Value *RuntimeLLVM::visitIfStmt(
-        const ast::statement::If &stmt) {
+        const ast::statement::If &stmt)
+    {
+        llvm::Value *condV = visit(stmt.Cond);
+        if (!condV)
+            return nullptr;
+        // Convert condition to a bool by comparing non-equal to 0.0
+        condV = Builder_->CreateFCmpONE(condV,
+                                        llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)),
+                                        "ifcond");
+
+        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
+
+        llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext_, "then", theFunction);
+        llvm::BasicBlock *elseBB = nullptr;
+        llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext_, "ifcont");
+
+        if (stmt.Else.has_value())
+        {
+            elseBB = llvm::BasicBlock::Create(*TheContext_, "else");
+            Builder_->CreateCondBr(condV, thenBB, elseBB);
+        }
+        else
+            Builder_->CreateCondBr(condV, thenBB, mergeBB);
+
+        //> `then` branch
+        Builder_->SetInsertPoint(thenBB);
+        llvm::Value *thenV = visit(stmt.Then);
+        if (!thenV)
+            return nullptr;
+
+        Builder_->CreateBr(mergeBB);
+        thenBB = Builder_->GetInsertBlock();
+        //<
+
+        //> `else` branch
+        if (stmt.Else.has_value())
+        {
+            theFunction->insert(theFunction->end(), elseBB);
+            Builder_->SetInsertPoint(elseBB);
+
+            llvm::Value *elseV = visit(stmt.Else.value());
+            if (!elseV)
+                return nullptr;
+
+            Builder_->CreateBr(mergeBB);
+            elseBB = Builder_->GetInsertBlock();
+        }
+        //<
+
+        //> merge branch
+        theFunction->insert(theFunction->end(), mergeBB);
+        Builder_->SetInsertPoint(mergeBB);
+        //<
+
         return nullptr;
     }
     //<
@@ -312,11 +366,11 @@ namespace hypertk
 
         // Create blocks for the then and else cases. Insert the 'then' block at the
         // end of the function.
-        llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext_, "then", theFunction);
-        llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext_, "else");
-        llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext_, "ifcont");
+        llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext_, "then", theFunction); // automatically insert the new block into the end of the `theFunction` function.
+        llvm::BasicBlock *elseBB = llvm::BasicBlock::Create(*TheContext_, "else");              // aren’t yet inserted into the function.
+        llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext_, "ifcont");           // aren’t yet inserted into the function.
 
-        Builder_->CreateCondBr(condV, thenBB, elseBB);
+        Builder_->CreateCondBr(condV, thenBB, elseBB); // Emit the conditional branch.
 
         //> Emit then value.
         Builder_->SetInsertPoint(thenBB);
@@ -325,7 +379,7 @@ namespace hypertk
         if (!thenV)
             return nullptr;
 
-        Builder_->CreateBr(mergeBB);
+        Builder_->CreateBr(mergeBB); // create an unconditional branch to the merge block to finish `then` block.
         // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
         thenBB = Builder_->GetInsertBlock();
         //<
@@ -336,7 +390,7 @@ namespace hypertk
 
         llvm::Value *elseV = visit(expr.Else);
         if (!elseV)
-        return nullptr;
+            return nullptr;
 
         Builder_->CreateBr(mergeBB);
         // codegen of 'Else' can change the current block, update ElseBB for the PHI.
