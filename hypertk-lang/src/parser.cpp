@@ -302,6 +302,8 @@ namespace parser
         {
         case TokenType::QUESTION_MARK:
             return 5;
+        case TokenType::LESS:
+            return 10;
         case TokenType::PLUS:
             return 20;
         case TokenType::MINUS:

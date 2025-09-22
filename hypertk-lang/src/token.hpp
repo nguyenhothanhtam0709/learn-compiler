@@ -18,11 +18,12 @@ namespace token
         MINUS,         // `-`
         STAR,          // `*`
         SLASH,         // `/`
+        EQUAL,         // `=`
+        LESS,          // `<`
         QUESTION_MARK, // `?`
         COLON,         // `:`
         SEMICOLON,     // `;`
         COMMA,         // `,`
-        EQUAL,         // `=`
         /** literals */
         IDENTIFIER, // Identifier
         NUMBER,     // float
@@ -33,7 +34,7 @@ namespace token
         THEN,   // `then`
         ELSE,   // `else`
         FOR,    // `for`
-        IN,     //`in`
+        IN,     // `in`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

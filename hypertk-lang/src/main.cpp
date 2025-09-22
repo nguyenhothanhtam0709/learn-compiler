@@ -23,18 +23,20 @@ int main()
 
         func printstar(n) {
             for i = 1, i < n, 1.0 in
-                putchard(42);
+                printd(42);
         }
 
         func main() {
-            if (0) printd(3);
+            // if (0) printd(3);
 
-            if (1)
-                printd(1);
-            else 
-                1*1;
+            // if (1)
+            //     printd(1);
+            // else 
+            //     1*1;
             
-            printd(foo(1, 2) ? 1 : 2);
+            // printd(foo(1, 2) ? 1 : 2);
+
+            printstar(3);
             
             return 0.0;
         }

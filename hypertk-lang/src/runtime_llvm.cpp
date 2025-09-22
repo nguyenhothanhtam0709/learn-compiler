@@ -196,16 +196,16 @@ namespace hypertk
         for (const auto &fStmt : stmt.Body)
             visit(fStmt);
 
-        // if (!Builder_->GetInsertBlock()->getTerminator())
-        // {
-        //     if (theFunction->getReturnType()->isVoidTy())
-        //         Builder_->CreateRetVoid();
-        //     else
-        //     {
-        //         // Return 0.0 for double functions without explicit return
-        //         Builder_->CreateRet(llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)));
-        //     }
-        // }
+        if (!Builder_->GetInsertBlock()->getTerminator())
+        {
+            if (theFunction->getReturnType()->isVoidTy())
+                Builder_->CreateRetVoid();
+            else
+            {
+                // Return 0.0 for double functions without explicit return
+                Builder_->CreateRet(llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)));
+            }
+        }
 
         std::string errMsg;
         llvm::raw_string_ostream errStream(errMsg);
@@ -303,8 +303,71 @@ namespace hypertk
     }
 
     llvm::Value *RuntimeLLVM::visitForStmt(
-        const ast::statement::For &tmt)
+        const ast::statement::For &stmt)
     {
+        // Emit the start code first, without `variable` in scope.
+        llvm::Value *startVal = visit(stmt.Start);
+        if (!startVal)
+            return nullptr;
+
+        // Make the new basic block for the loop header, inserting after current block.
+        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
+        llvm::BasicBlock *preheaderBB = Builder_->GetInsertBlock();
+        llvm::BasicBlock *loopBB = llvm::BasicBlock::Create(*TheContext_, "loop", theFunction);
+
+        // Insert an explicit fall through from the current block to the loopBB
+        Builder_->CreateBr(loopBB);
+
+        // Start insertion in loopBB
+        Builder_->SetInsertPoint(loopBB);
+
+        // Start the PHI node with and entry for Start.
+        llvm::PHINode *variable = Builder_->CreatePHI(llvm::Type::getDoubleTy(*TheContext_), 2, stmt.VarName);
+        variable->addIncoming(startVal, preheaderBB);
+
+        // Within the loop, the variable is defined equal to the PHI node.  If it
+        // shadows an existing variable, we have to restore it, so save it now.
+        llvm::Value *oldVal = NamedValues_[stmt.VarName];
+        NamedValues_[stmt.VarName] = variable;
+
+        // Emit the body of the loop.  This, like any other expr, can change the
+        // current BB.  Note that we ignore the value computed by the body, but don't
+        // allow an error.
+        if (!visit(stmt.Body))
+            return nullptr;
+
+        // Emit the step values.
+        llvm::Value *stepVal = visit(stmt.Step);
+        if (!stepVal)
+            return nullptr;
+
+        llvm::Value *nextVar = Builder_->CreateFAdd(variable, stepVal, "nextvar");
+
+        // Compute the end condition.
+        llvm::Value *endCond = visit(stmt.End);
+        if (!endCond)
+            return nullptr;
+        // Convert condition to a bool by comparing non-equal to 0.0.
+        endCond = Builder_->CreateFCmpONE(endCond, llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)), "loopcond");
+
+        // Create the `after loop` block and insert it.
+        llvm::BasicBlock *loopEndBB = Builder_->GetInsertBlock();
+        llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(*TheContext_, "afterloop", theFunction);
+
+        // Insert the conditional branch into the end of loopEndBB
+        Builder_->CreateCondBr(endCond, loopBB, afterBB);
+
+        // any new code will be inserted in afterBB;
+        Builder_->SetInsertPoint(afterBB);
+
+        // Add a new entry to the PHI node for the backedge.
+        variable->addIncoming(nextVar, loopEndBB);
+
+        // Restore the unshadowed variable.
+        if (oldVal)
+            NamedValues_[stmt.VarName] = oldVal;
+        else
+            NamedValues_.erase(stmt.VarName);
 
         return nullptr;
     }
@@ -351,6 +414,10 @@ namespace hypertk
             return Builder_->CreateFMul(L, R, "multmp");
         case ast::BinaryOp::DIV:
             return Builder_->CreateFDiv(L, R, "divtmp");
+        case ast::BinaryOp::LESS:
+            L = Builder_->CreateFCmpULT(L, R, "cmptmp");
+            // Convert bool 0/1 to double 0.0 or 1.0
+            return Builder_->CreateUIToFP(L, llvm::Type::getDoubleTy(*TheContext_), "booltmp");
         default:
             logError("Unsupported binary operator.");
             return nullptr;

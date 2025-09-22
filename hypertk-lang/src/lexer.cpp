@@ -47,6 +47,10 @@ namespace lexer
             return makeToken(token::TokenType::STAR);
         if (c == '/')
             return makeToken(token::TokenType::SLASH);
+        if (c == '=')
+            return makeToken(token::TokenType::EQUAL);
+        if (c == '<')
+            return makeToken(token::TokenType::LESS);
         if (c == '(')
             return makeToken(token::TokenType::LEFT_PAREN);
         if (c == ')')
@@ -63,8 +67,6 @@ namespace lexer
             return makeToken(token::TokenType::SEMICOLON);
         if (c == ',')
             return makeToken(token::TokenType::COMMA);
-        if (c == '=')
-            return makeToken(token::TokenType::EQUAL);
 
         return errorToken(std::string("Unexpected character '") + c + "'.");
     }

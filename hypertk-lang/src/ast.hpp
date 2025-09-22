@@ -17,6 +17,7 @@ namespace ast
         SUB = (int)token::TokenType::MINUS,
         MUL = (int)token::TokenType::STAR,
         DIV = (int)token::TokenType::SLASH,
+        LESS = (int)token::TokenType::LESS,
     };
 
     /** @brief Expression ast */
