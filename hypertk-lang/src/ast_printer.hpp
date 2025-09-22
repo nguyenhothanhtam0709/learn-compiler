@@ -24,6 +24,7 @@ namespace ast
         //> Print statements
         void visitFunctionStmt(const statement::Function &stmt);
         void visitBinOpDefStmt(const statement::BinOpDef &stmt);
+        void visitUnaryOpDefStmt(const statement::UnaryOpDef &stmt);
         void visitExpressionStmt(const statement::Expression &stmt);
         void visitReturnStmt(const statement::Return &stmt);
         void visitIfStmt(const statement::If &stmt);
@@ -34,6 +35,7 @@ namespace ast
         void visitNumberExpr(const expression::Number &expr);
         void visitVariableExpr(const expression::Variable &expr);
         void visitBinaryExpr(const expression::Binary &expr);
+        void visitUnaryExpr(const expression::Unary &expr);
         void visitConditionalExpr(const expression::Conditional &expr);
         void visitCallExpr(const expression::Call &expr);
         //<

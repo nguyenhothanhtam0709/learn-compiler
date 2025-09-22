@@ -47,6 +47,38 @@ namespace ast
         }
     }
 
+    enum class UnaryOp
+    {
+        // Operators allow user to define custom behaviour
+        MINUS = (int)token::TokenType::MINUS,
+        EXCLAMATION = (int)token::TokenType::EXCLAMATION,
+    };
+
+    constexpr bool isUnaryOp(token::TokenType t)
+    {
+        switch (t)
+        {
+        case token::TokenType::MINUS:
+        case token::TokenType::EXCLAMATION:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    constexpr char UnaryOp2Char(UnaryOp op)
+    {
+        switch (op)
+        {
+        case UnaryOp::MINUS:
+            return '-';
+        case UnaryOp::EXCLAMATION:
+            return '!';
+        default:
+            return '\0';
+        }
+    }
+
     enum class FuncKind
     {
         FUNCTION,
@@ -60,15 +92,22 @@ namespace ast
         struct Number;
         struct Variable;
         struct Binary;
+        struct Unary;
         struct Conditional;
         struct Call;
 
         using NumberPtr = std::unique_ptr<Number>;
         using VariablePtr = std::unique_ptr<Variable>;
         using BinaryPtr = std::unique_ptr<Binary>;
+        using UnaryPtr = std::unique_ptr<Unary>;
         using ConditionalPtr = std::unique_ptr<Conditional>;
         using CallPtr = std::unique_ptr<Call>;
-        using ExprPtr = std::variant<NumberPtr, VariablePtr, BinaryPtr, ConditionalPtr, CallPtr>;
+        using ExprPtr = std::variant<NumberPtr,
+                                     VariablePtr,
+                                     BinaryPtr,
+                                     UnaryPtr,
+                                     ConditionalPtr,
+                                     CallPtr>;
 
         struct Number : private Uncopyable
         {
@@ -91,6 +130,15 @@ namespace ast
 
             Binary(BinaryOp Op, ExprPtr LHS, ExprPtr RHS)
                 : Op(Op), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+        };
+
+        struct Unary : private Uncopyable
+        {
+            UnaryOp Op;
+            ExprPtr Operand;
+
+            Unary(UnaryOp op, ExprPtr operand)
+                : Op{op}, Operand{std::move(operand)} {}
         };
 
         struct Conditional : private Uncopyable
@@ -136,6 +184,10 @@ namespace ast
                         {
                             return visitBinaryExpr(*expr);
                         },
+                        [this](const UnaryPtr &expr)
+                        {
+                            return visitUnaryExpr(*expr);
+                        },
                         [this](const ConditionalPtr &expr)
                         {
                             return visitConditionalExpr(*expr);
@@ -151,6 +203,7 @@ namespace ast
             virtual R visitNumberExpr(const Number &expr) = 0;
             virtual R visitVariableExpr(const Variable &expr) = 0;
             virtual R visitBinaryExpr(const Binary &expr) = 0;
+            virtual R visitUnaryExpr(const Unary &expr) = 0;
             virtual R visitConditionalExpr(const Conditional &expr) = 0;
             virtual R visitCallExpr(const Call &expr) = 0;
         };
@@ -161,6 +214,7 @@ namespace ast
     {
         struct Function;
         struct BinOpDef;
+        struct UnaryOpDef;
         struct Expression;
         struct Return;
         struct If;
@@ -168,12 +222,14 @@ namespace ast
 
         using FunctionPtr = std::unique_ptr<Function>;
         using BinOpDefPtr = std::unique_ptr<BinOpDef>;
+        using UnaryOpDefPtr = std::unique_ptr<UnaryOpDef>;
         using ExpressionPtr = std::unique_ptr<Expression>;
         using ReturnPtr = std::unique_ptr<Return>;
         using IfPtr = std::unique_ptr<If>;
         using ForPtr = std::unique_ptr<For>;
         using StmtPtr = std::variant<FunctionPtr,
                                      BinOpDefPtr,
+                                     UnaryOpDefPtr,
                                      ExpressionPtr,
                                      ReturnPtr,
                                      IfPtr,
@@ -191,7 +247,7 @@ namespace ast
                 : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
         };
 
-        /** @brief define binary operator */
+        /** @brief define custom binary operator */
         struct BinOpDef : public Function
         {
             unsigned Precedence;
@@ -201,6 +257,20 @@ namespace ast
                      std::vector<StmtPtr> body,
                      unsigned prec = 0)
                 : Function(std::move(name), std::move(args), std::move(body)), Precedence{prec} {}
+
+            const char getOperator() const
+            {
+                return Name[Name.size() - 1];
+            }
+        };
+
+        /** @brief define custom unary operator */
+        struct UnaryOpDef : public Function
+        {
+            UnaryOpDef(const std::string &name,
+                       std::vector<std::string> args,
+                       std::vector<StmtPtr> body)
+                : Function(std::move(name), std::move(args), std::move(body)) {}
 
             const char getOperator() const
             {
@@ -269,6 +339,10 @@ namespace ast
                         {
                             return visitBinOpDefStmt(*stmt);
                         },
+                        [this](const UnaryOpDefPtr &stmt)
+                        {
+                            return visitUnaryOpDefStmt(*stmt);
+                        },
                         [this](const ExpressionPtr &stmt)
                         {
                             return visitExpressionStmt(*stmt);
@@ -291,6 +365,7 @@ namespace ast
         protected:
             virtual R visitFunctionStmt(const Function &stmt) = 0;
             virtual R visitBinOpDefStmt(const BinOpDef &stmt) = 0;
+            virtual R visitUnaryOpDefStmt(const UnaryOpDef &stmt) = 0;
             virtual R visitExpressionStmt(const Expression &stmt) = 0;
             virtual R visitReturnStmt(const Return &stmt) = 0;
             virtual R visitIfStmt(const If &stmt) = 0;

@@ -179,6 +179,16 @@ namespace hypertk
         return genFunctionBody(stmt, theFunction);
     }
 
+    llvm::Value *RuntimeLLVM::visitUnaryOpDefStmt(
+        const ast::statement::UnaryOpDef &stmt)
+    {
+        llvm::Function *theFunction = genFunctionPrototype(stmt);
+        if (!theFunction)
+            return nullptr;
+
+        return genFunctionBody(stmt, theFunction);
+    }
+
     /** @brief Gen llvm ir for function prototype */
     llvm::Function *RuntimeLLVM::genFunctionPrototype(
         const ast::statement::Function &stmt)
@@ -456,6 +466,23 @@ namespace hypertk
 
         logError("Unsupported binary operator.");
         return nullptr;
+    }
+
+    llvm::Value *RuntimeLLVM::visitUnaryExpr(
+        const ast::expression::Unary &expr)
+    {
+        llvm::Function *func = TheModule_->getFunction(std::string("unary") + ast::UnaryOp2Char(expr.Op));
+        if (!func)
+        {
+            logError("Unsupported unary operator.");
+            return nullptr;
+        }
+
+        llvm::Value *operandV = visit(expr.Operand);
+        if (!operandV)
+            return nullptr;
+
+        return Builder_->CreateCall(func, operandV, "unop");
     }
 
     /// @details Using SSA `Phi operation`

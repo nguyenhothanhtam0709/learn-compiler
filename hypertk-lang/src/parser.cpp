@@ -95,6 +95,13 @@ namespace parser
         case TokenType::UNARY:
         {
             funcKind = ast::FuncKind::UNARY_OP;
+
+            funcName = std::move(current_.lexeme);
+            advance();
+            binOpType = current_.type;
+            funcName += current_.lexeme; // operator
+            advance();
+
             break;
         }
         case TokenType::IDENTIFIER:
@@ -150,7 +157,7 @@ namespace parser
             return std::make_unique<ast::statement::BinOpDef>(std::move(funcName), std::move(args), std::move(stmts), binPrec);
         }
         case ast::FuncKind::UNARY_OP:
-            return std::nullopt;
+            return std::make_unique<ast::statement::UnaryOpDef>(std::move(funcName), std::move(args), std::move(stmts));
         default:
             return std::make_unique<ast::statement::Function>(std::move(funcName), std::move(args), std::move(stmts));
         }
@@ -249,11 +256,29 @@ namespace parser
     std::optional<ast::expression::ExprPtr> Parser::parseExpr() { return parseExpr(0); }
     std::optional<ast::expression::ExprPtr> Parser::parseExpr(int exprPrec)
     {
-        auto LHS = parsePrimary();
+        auto LHS = parseUnary();
         if (!LHS.has_value())
             return std::nullopt;
 
         return parseBinaryRHS(0, std::move(LHS.value()));
+    }
+
+    /// unary
+    ///   ::= primary
+    ///   ::= '!' unary
+    std::optional<ast::expression::ExprPtr> Parser::parseUnary()
+    {
+        // If the current token is not an unary operator, it must be a primary expr.
+        if (!ast::isUnaryOp(current_.type))
+            return parsePrimary();
+
+        ast::UnaryOp op = static_cast<ast::UnaryOp>(current_.type);
+        advance();
+
+        if (auto operand = parseUnary(); operand.has_value())
+            return std::make_unique<ast::expression::Unary>(op, std::move(operand.value()));
+
+        return std::nullopt;
     }
 
     std::optional<ast::expression::ExprPtr> Parser::parseBinaryRHS(int exprPrec, ast::expression::ExprPtr LHS)
@@ -293,7 +318,7 @@ namespace parser
             auto binOp = std::move(previous_);
 
             // Parse the primary expression after the binary operator.
-            auto RHS = parsePrimary();
+            auto RHS = parseUnary();
             if (!RHS.has_value())
                 return std::nullopt;
 

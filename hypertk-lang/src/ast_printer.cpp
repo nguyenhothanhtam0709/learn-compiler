@@ -32,6 +32,8 @@ namespace ast
 
     void SimplePrinter::visitBinOpDefStmt(const statement::BinOpDef &stmt) {}
 
+    void SimplePrinter::visitUnaryOpDefStmt(const statement::UnaryOpDef &stmt) {}
+
     void SimplePrinter::visitExpressionStmt(const statement::Expression &stmt)
     {
         printIndent();
@@ -105,6 +107,8 @@ namespace ast
         visit(expr.RHS);
         decreaseIndent();
     }
+
+    void SimplePrinter::visitUnaryExpr(const expression::Unary &expr) {}
 
     void SimplePrinter::visitConditionalExpr(const expression::Conditional &expr)
     {

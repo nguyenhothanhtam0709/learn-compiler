@@ -25,6 +25,10 @@ int main()
             return RHS < LHS;
         }
 
+        func unary-(v) {
+            return 0 - v;
+        }
+
         func foo(a,b) { 
             // a*a + 2*a*b + b*b;
             return a*a + 2*a*b;
@@ -45,9 +49,9 @@ int main()
             
             // printd(foo(1, 2) ? 1 : 2);
 
-            printstar(3);
-            
-            return 1 > 2 + 5;
+            // printstar(3);
+
+            return -1;
         }
     )";
     parser::Parser parser_{lexer::Lexer{src}};
