@@ -292,14 +292,13 @@ namespace hypertk
         llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
 
         llvm::BasicBlock *thenBB = llvm::BasicBlock::Create(*TheContext_, "then", theFunction);
-        llvm::BasicBlock *elseBB = nullptr;
+        llvm::BasicBlock *elseBB = stmt.Else.has_value()
+                                       ? llvm::BasicBlock::Create(*TheContext_, "else")
+                                       : nullptr;
         llvm::BasicBlock *mergeBB = llvm::BasicBlock::Create(*TheContext_, "ifcont");
 
         if (stmt.Else.has_value())
-        {
-            elseBB = llvm::BasicBlock::Create(*TheContext_, "else");
             Builder_->CreateCondBr(condV, thenBB, elseBB);
-        }
         else
             Builder_->CreateCondBr(condV, thenBB, mergeBB);
 
@@ -309,8 +308,9 @@ namespace hypertk
         if (!thenV)
             return nullptr;
 
-        Builder_->CreateBr(mergeBB);
-        thenBB = Builder_->GetInsertBlock();
+        if (!Builder_->GetInsertBlock()->getTerminator())
+            Builder_->CreateBr(mergeBB);
+        // thenBB = Builder_->GetInsertBlock();
         //<
 
         //> `else` branch
@@ -323,8 +323,9 @@ namespace hypertk
             if (!elseV)
                 return nullptr;
 
-            Builder_->CreateBr(mergeBB);
-            elseBB = Builder_->GetInsertBlock();
+            if (!Builder_->GetInsertBlock()->getTerminator())
+                Builder_->CreateBr(mergeBB);
+            // elseBB = Builder_->GetInsertBlock();
         }
         //<
 
@@ -333,7 +334,7 @@ namespace hypertk
         Builder_->SetInsertPoint(mergeBB);
         //<
 
-        return nullptr;
+        return condV;
     }
 
     llvm::Value *RuntimeLLVM::visitForStmt(

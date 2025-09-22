@@ -26,6 +26,8 @@ namespace token
         COLON,         // `:`
         SEMICOLON,     // `;`
         COMMA,         // `,`
+        VERTICAL_BAR,  // `|`
+        AMPERSAND,     // `&`
         /** literals */
         IDENTIFIER, // Identifier
         NUMBER,     // float

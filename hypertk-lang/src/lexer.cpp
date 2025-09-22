@@ -71,6 +71,10 @@ namespace lexer
             return makeToken(token::TokenType::SEMICOLON);
         if (c == ',')
             return makeToken(token::TokenType::COMMA);
+        if (c == '|')
+            return makeToken(token::TokenType::VERTICAL_BAR);
+        if (c == '&')
+            return makeToken(token::TokenType::AMPERSAND);
 
         return errorToken(std::string("Unexpected character '") + c + "'.");
     }

@@ -22,6 +22,10 @@ namespace ast
         // Operators allow user to define custom behaviour
         GREATER = (int)token::TokenType::GREATER,
         EXCLAMATION = (int)token::TokenType::EXCLAMATION,
+        VERTICAL_BAR = (int)token::TokenType::VERTICAL_BAR,
+        AMPERSAND = (int)token::TokenType::AMPERSAND,
+        EQUAL = (int)token::TokenType::EQUAL,
+        COLON = (int)token::TokenType::COLON,
     };
 
     constexpr char BinaryOp2Char(BinaryOp op)
@@ -42,6 +46,14 @@ namespace ast
             return '>';
         case BinaryOp::EXCLAMATION:
             return '!';
+        case BinaryOp::VERTICAL_BAR:
+            return '|';
+        case BinaryOp::AMPERSAND:
+            return '&';
+        case BinaryOp::EQUAL:
+            return '=';
+        case BinaryOp::COLON:
+            return ':';
         default:
             return '\0';
         }
