@@ -10,7 +10,15 @@ namespace parser
     using token::TokenType;
 
     Parser::Parser(lexer::Lexer &&lexer_)
-        : lexer_{std::move(lexer_)}, panicMode_{false} {}
+        : lexer_{std::move(lexer_)}, panicMode_{false}
+    {
+        binopPrec_[TokenType::QUESTION_MARK] = 5;
+        binopPrec_[TokenType::LESS] = 10;
+        binopPrec_[TokenType::PLUS] = 20;
+        binopPrec_[TokenType::MINUS] = 20;
+        binopPrec_[TokenType::STAR] = 40;
+        binopPrec_[TokenType::SLASH] = 40;
+    }
     // Parser::Parser(const lexer::Lexer &lexer)
     //     : lexer_{std::move(lexer)}, panicMode_{false} {}
 
@@ -53,10 +61,58 @@ namespace parser
         return parseExpressionStmt();
     }
 
+    /// functionDecl
+    ///   ::= id '(' id* ')'
+    ///   ::= binary LETTER number? (id, id)
     std::optional<ast::statement::FunctionPtr> Parser::parseFunctionDeclaration()
     {
-        consume(TokenType::IDENTIFIER, "Expect function name.");
-        token::Token name = std::move(previous_);
+        std::string funcName;
+        ast::FuncKind funcKind = ast::FuncKind::FUNCTION; // 0 = identifier, 1 = unary, 2 = binary.
+        unsigned binPrec = 30;
+        TokenType binOpType;
+
+        switch (current_.type)
+        {
+        case TokenType::BINARY:
+        {
+            funcKind = ast::FuncKind::BINARY_OP;
+
+            funcName = std::move(current_.lexeme);
+            advance();
+            binOpType = current_.type;
+            funcName += current_.lexeme; // operator
+            advance();
+
+            if (match(TokenType::NUMBER))
+            {
+                binPrec = (unsigned)std::stoi(previous_.lexeme);
+                if (binPrec < 0 || binPrec > 100)
+                    errorAtCurrent("Invalid precedence: must be 1..100");
+            }
+
+            break;
+        }
+        case TokenType::UNARY:
+        {
+            funcKind = ast::FuncKind::UNARY_OP;
+            break;
+        }
+        case TokenType::IDENTIFIER:
+        {
+            funcKind = ast::FuncKind::FUNCTION;
+            funcName = std::move(current_.lexeme);
+            advance();
+            break;
+        }
+        default:
+        {
+            errorAtCurrent("Expect function name.");
+            return std::nullopt;
+        }
+        }
+
+        // consume(TokenType::IDENTIFIER, "Expect function name.");
+        // token::Token name = std::move(previous_);
 
         consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
 
@@ -86,7 +142,18 @@ namespace parser
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
-        return std::make_unique<ast::statement::Function>(std::move(name.lexeme), std::move(args), std::move(stmts));
+        switch (funcKind)
+        {
+        case ast::FuncKind::BINARY_OP:
+        {
+            setTokenPrecedence(binOpType, binPrec);
+            return std::make_unique<ast::statement::BinOpDef>(std::move(funcName), std::move(args), std::move(stmts), binPrec);
+        }
+        case ast::FuncKind::UNARY_OP:
+            return std::nullopt;
+        default:
+            return std::make_unique<ast::statement::Function>(std::move(funcName), std::move(args), std::move(stmts));
+        }
     }
 
     std::optional<ast::statement::ExpressionPtr> Parser::parseExpressionStmt()
@@ -298,23 +365,16 @@ namespace parser
 
     int Parser::getTokenPrecedence(TokenType type)
     {
-        switch (type)
-        {
-        case TokenType::QUESTION_MARK:
-            return 5;
-        case TokenType::LESS:
-            return 10;
-        case TokenType::PLUS:
-            return 20;
-        case TokenType::MINUS:
-            return 20;
-        case TokenType::STAR:
-            return 40;
-        case TokenType::SLASH:
-            return 40;
-        default:
+        int prec = binopPrec_[type];
+        if (prec <= 0)
             return -1;
-        }
+
+        return prec;
+    }
+    bool Parser::setTokenPrecedence(TokenType type, int prec)
+    {
+        binopPrec_[type] = prec;
+        return true;
     }
     //< Parse expression
 

@@ -83,6 +83,10 @@ namespace hypertk
 
         //> statements
         llvm::Value *visitFunctionStmt(const ast::statement::Function &stmt);
+        llvm::Value *visitBinOpDefStmt(const ast::statement::BinOpDef &stmt);
+        llvm::Function *genFunctionPrototype(const ast::statement::Function &stmt);
+        llvm::Function *genFunctionBody(const ast::statement::Function &stmt,
+                                        llvm::Function *theFunction);
         llvm::Value *visitExpressionStmt(const ast::statement::Expression &stmt);
         llvm::Value *visitReturnStmt(const ast::statement::Return &stmt);
         llvm::Value *visitIfStmt(const ast::statement::If &stmt);

@@ -51,6 +51,10 @@ namespace lexer
             return makeToken(token::TokenType::EQUAL);
         if (c == '<')
             return makeToken(token::TokenType::LESS);
+        if (c == '>')
+            return makeToken(token::TokenType::GREATER);
+        if (c == '!')
+            return makeToken(token::TokenType::EXCLAMATION);
         if (c == '(')
             return makeToken(token::TokenType::LEFT_PAREN);
         if (c == ')')
@@ -107,6 +111,10 @@ namespace lexer
             type = token::TokenType::FOR;
         else if (lexeme == "in")
             type = token::TokenType::IN;
+        else if (lexeme == "unary")
+            type = token::TokenType::UNARY;
+        else if (lexeme == "binary")
+            type = token::TokenType::BINARY;
         else
             type = token::TokenType::IDENTIFIER;
 

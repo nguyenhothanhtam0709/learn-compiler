@@ -16,6 +16,15 @@
 int main()
 {
     std::string src = R"(
+        // func unary!(v) {
+        //     if (v) return 0;
+        //     else return 1;
+        // }
+
+        func binary> 10 (LHS, RHS) {
+            return RHS < LHS;
+        }
+
         func foo(a,b) { 
             // a*a + 2*a*b + b*b;
             return a*a + 2*a*b;
@@ -38,7 +47,7 @@ int main()
 
             printstar(3);
             
-            return 0.0;
+            return 1 > 2 + 5;
         }
     )";
     parser::Parser parser_{lexer::Lexer{src}};

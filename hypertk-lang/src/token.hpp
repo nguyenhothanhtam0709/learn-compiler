@@ -20,6 +20,8 @@ namespace token
         SLASH,         // `/`
         EQUAL,         // `=`
         LESS,          // `<`
+        GREATER,       // `>`
+        EXCLAMATION,   // `!`
         QUESTION_MARK, // `?`
         COLON,         // `:`
         SEMICOLON,     // `;`
@@ -35,6 +37,8 @@ namespace token
         ELSE,   // `else`
         FOR,    // `for`
         IN,     // `in`
+        UNARY,  // `unary`
+        BINARY, // `binary`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

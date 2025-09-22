@@ -162,6 +162,27 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitFunctionStmt(
         const ast::statement::Function &stmt)
     {
+        llvm::Function *theFunction = genFunctionPrototype(stmt);
+        if (!theFunction)
+            return nullptr;
+
+        return genFunctionBody(stmt, theFunction);
+    }
+
+    llvm::Value *RuntimeLLVM::visitBinOpDefStmt(
+        const ast::statement::BinOpDef &stmt)
+    {
+        llvm::Function *theFunction = genFunctionPrototype(stmt);
+        if (!theFunction)
+            return nullptr;
+
+        return genFunctionBody(stmt, theFunction);
+    }
+
+    /** @brief Gen llvm ir for function prototype */
+    llvm::Function *RuntimeLLVM::genFunctionPrototype(
+        const ast::statement::Function &stmt)
+    {
         llvm::Function *theFunction = TheModule_->getFunction(stmt.Name);
         if (theFunction && !theFunction->empty())
         {
@@ -169,7 +190,6 @@ namespace hypertk
             return nullptr;
         }
 
-        //> Parse function signature
         std::vector<llvm::Type *> Doubles(stmt.Args.size(), llvm::Type::getDoubleTy(*TheContext_));
         llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getDoubleTy(*TheContext_), Doubles, false);
         theFunction = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, stmt.Name, TheModule_.get());
@@ -178,10 +198,14 @@ namespace hypertk
         unsigned idx = 0;
         for (auto &arg : theFunction->args())
             arg.setName(stmt.Args[idx++]);
-        //<
 
-        //> Parse function body
+        return theFunction;
+    }
 
+    /** @brief Gen llvm ir for function body */
+    llvm::Function *RuntimeLLVM::genFunctionBody(const ast::statement::Function &stmt,
+                                                 llvm::Function *theFunction)
+    {
         // Create a new basic block to start insertion into.
         // Basic blocks in LLVM are an important part of functions that define the Control Flow Graph.
         llvm::BasicBlock *bB = llvm::BasicBlock::Create(*TheContext_, "entry", theFunction);
@@ -419,9 +443,19 @@ namespace hypertk
             // Convert bool 0/1 to double 0.0 or 1.0
             return Builder_->CreateUIToFP(L, llvm::Type::getDoubleTy(*TheContext_), "booltmp");
         default:
-            logError("Unsupported binary operator.");
-            return nullptr;
+            break;
         }
+
+        // If it wasn't a builtin binary operator, it must be a user defined one.
+        // Emit a call to it.
+        if (llvm::Function *func = TheModule_->getFunction(std::string("binary") + ast::BinaryOp2Char(expr.Op)))
+        {
+            llvm::Value *ops[2] = {L, R};
+            return Builder_->CreateCall(func, ops, "binop");
+        }
+
+        logError("Unsupported binary operator.");
+        return nullptr;
     }
 
     /// @details Using SSA `Phi operation`

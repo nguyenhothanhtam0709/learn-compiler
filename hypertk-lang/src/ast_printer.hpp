@@ -23,6 +23,7 @@ namespace ast
 
         //> Print statements
         void visitFunctionStmt(const statement::Function &stmt);
+        void visitBinOpDefStmt(const statement::BinOpDef &stmt);
         void visitExpressionStmt(const statement::Expression &stmt);
         void visitReturnStmt(const statement::Return &stmt);
         void visitIfStmt(const statement::If &stmt);

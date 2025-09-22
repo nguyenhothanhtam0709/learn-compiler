@@ -30,6 +30,8 @@ namespace ast
         decreaseIndent();
     }
 
+    void SimplePrinter::visitBinOpDefStmt(const statement::BinOpDef &stmt) {}
+
     void SimplePrinter::visitExpressionStmt(const statement::Expression &stmt)
     {
         printIndent();

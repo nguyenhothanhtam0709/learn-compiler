@@ -13,11 +13,45 @@ namespace ast
 {
     enum class BinaryOp
     {
+        // Builtin operators
         ADD = (int)token::TokenType::PLUS,
         SUB = (int)token::TokenType::MINUS,
         MUL = (int)token::TokenType::STAR,
         DIV = (int)token::TokenType::SLASH,
         LESS = (int)token::TokenType::LESS,
+        // Operators allow user to define custom behaviour
+        GREATER = (int)token::TokenType::GREATER,
+        EXCLAMATION = (int)token::TokenType::EXCLAMATION,
+    };
+
+    constexpr char BinaryOp2Char(BinaryOp op)
+    {
+        switch (op)
+        {
+        case BinaryOp::ADD:
+            return '+';
+        case BinaryOp::SUB:
+            return '-';
+        case BinaryOp::MUL:
+            return '*';
+        case BinaryOp::DIV:
+            return '/';
+        case BinaryOp::LESS:
+            return '<';
+        case BinaryOp::GREATER:
+            return '>';
+        case BinaryOp::EXCLAMATION:
+            return '!';
+        default:
+            return '\0';
+        }
+    }
+
+    enum class FuncKind
+    {
+        FUNCTION,
+        UNARY_OP,
+        BINARY_OP,
     };
 
     /** @brief Expression ast */
@@ -126,17 +160,24 @@ namespace ast
     namespace statement
     {
         struct Function;
+        struct BinOpDef;
         struct Expression;
         struct Return;
         struct If;
         struct For;
 
         using FunctionPtr = std::unique_ptr<Function>;
+        using BinOpDefPtr = std::unique_ptr<BinOpDef>;
         using ExpressionPtr = std::unique_ptr<Expression>;
         using ReturnPtr = std::unique_ptr<Return>;
         using IfPtr = std::unique_ptr<If>;
         using ForPtr = std::unique_ptr<For>;
-        using StmtPtr = std::variant<FunctionPtr, ExpressionPtr, ReturnPtr, IfPtr, ForPtr>;
+        using StmtPtr = std::variant<FunctionPtr,
+                                     BinOpDefPtr,
+                                     ExpressionPtr,
+                                     ReturnPtr,
+                                     IfPtr,
+                                     ForPtr>;
 
         struct Function : private Uncopyable
         {
@@ -148,6 +189,23 @@ namespace ast
                      std::vector<std::string> args,
                      std::vector<StmtPtr> body)
                 : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
+        };
+
+        /** @brief define binary operator */
+        struct BinOpDef : public Function
+        {
+            unsigned Precedence;
+
+            BinOpDef(const std::string &name,
+                     std::vector<std::string> args,
+                     std::vector<StmtPtr> body,
+                     unsigned prec = 0)
+                : Function(std::move(name), std::move(args), std::move(body)), Precedence{prec} {}
+
+            const char getOperator() const
+            {
+                return Name[Name.size() - 1];
+            }
         };
 
         struct Expression : private Uncopyable
@@ -207,6 +265,10 @@ namespace ast
                         {
                             return visitFunctionStmt(*stmt);
                         },
+                        [this](const BinOpDefPtr &stmt)
+                        {
+                            return visitBinOpDefStmt(*stmt);
+                        },
                         [this](const ExpressionPtr &stmt)
                         {
                             return visitExpressionStmt(*stmt);
@@ -228,6 +290,7 @@ namespace ast
 
         protected:
             virtual R visitFunctionStmt(const Function &stmt) = 0;
+            virtual R visitBinOpDefStmt(const BinOpDef &stmt) = 0;
             virtual R visitExpressionStmt(const Expression &stmt) = 0;
             virtual R visitReturnStmt(const Return &stmt) = 0;
             virtual R visitIfStmt(const If &stmt) = 0;

@@ -2,6 +2,7 @@
 #define HYPERTK_PARSER_HPP
 
 #include <optional>
+#include <map>
 
 #include "token.hpp"
 #include "ast.hpp"
@@ -22,6 +23,7 @@ namespace parser
         token::Token previous_;
         token::Token current_;
         bool panicMode_;
+        std::map<token::TokenType, int> binopPrec_;
 
         //> Parse statement
         std::optional<ast::statement::StmtPtr> parseDeclaration();
@@ -41,6 +43,7 @@ namespace parser
         std::optional<ast::expression::ExprPtr> parseParen();
         std::optional<ast::expression::ExprPtr> parseIdentifier();
         int getTokenPrecedence(token::TokenType type);
+        bool setTokenPrecedence(token::TokenType type, int prec);
         //< Parse expression
 
         void advance();
