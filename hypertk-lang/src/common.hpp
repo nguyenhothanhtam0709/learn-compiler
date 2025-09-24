@@ -5,8 +5,8 @@
 #define ENABLE_COMPILER_OPTIMIZATION_PASS
 /** @brief Enable print ast */
 #define ENABLE_PRINTING_AST
-/** @brief Enable semantic analyzing */
-#define ENABLE_SEMATIC_ANALYZING
+/** @brief Disable semantic analyzing */
+#define DISABLE_SEMATIC_ANALYZING
 /** @brief Enable print llvm ir */
 #define ENABLE_PRINTING_LLVM_IR
 /** @brief Enable basic jit compiler */

@@ -14,7 +14,7 @@
 #ifdef ENABLE_PRINTING_AST
 #include "ast_printer.hpp"
 #endif
-#ifdef ENABLE_SEMATIC_ANALYZING
+#ifndef DISABLE_SEMATIC_ANALYZING
 #include "semantic_analyzer.hpp"
 #endif
 #include "runtime_llvm.hpp"
@@ -145,7 +145,7 @@ int main()
         runtime.declareBuiltInFunctions();
 #endif
 
-#ifdef ENABLE_SEMATIC_ANALYZING
+#ifndef DISABLE_SEMATIC_ANALYZING
         semantic_analysis::BasicSemanticAnalyzer analyzer(ast_.value());
         if (!analyzer.analyze())
             return EXIT_FAILURE;
