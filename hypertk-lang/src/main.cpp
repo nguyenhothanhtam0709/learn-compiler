@@ -8,9 +8,16 @@
 #include "token.hpp"
 #include "ast.hpp"
 #include "parser.hpp"
-#include "ast_printer.hpp"
-#include "runtime_llvm.hpp"
+#ifdef ENABLE_BUILTIN_FUNCTIONS
 #include "builtin.hpp"
+#endif
+#ifdef ENABLE_PRINTING_AST
+#include "ast_printer.hpp"
+#endif
+#ifdef ENABLE_SEMATIC_ANALYZING
+#include "semantic_analyzer.hpp"
+#endif
+#include "runtime_llvm.hpp"
 #include "error.hpp"
 
 int main()
@@ -122,22 +129,34 @@ int main()
         return EXIT_FAILURE;
     if (ast_.has_value())
     {
-        // ast::SimplePrinter printer;
-        // printer.print(ast_.value());
+#ifdef ENABLE_PRINTING_AST
+        ast::SimplePrinter printer;
+        printer.print(ast_.value());
+#endif
 
         hypertk::RuntimeLLVM runtime;
 #ifdef ENABLE_BASIC_JIT_COMPILER
         runtime.initializeJIT();
 #endif
+
         runtime.initializeModuleAndManagers();
+
 #ifdef ENABLE_BUILTIN_FUNCTIONS
         runtime.declareBuiltInFunctions();
 #endif
+
+#ifdef ENABLE_SEMATIC_ANALYZING
+        semantic_analysis::BasicSemanticAnalyzer analyzer(ast_.value());
+        if (!analyzer.analyze())
+            return EXIT_FAILURE;
+#endif
+
         runtime.genIR(ast_.value());
         if (error::hasError())
             return EXIT_FAILURE;
-
+#ifdef ENABLE_PRINTING_LLVM_IR
         runtime.printIR();
+#endif
 
 #ifdef ENABLE_BASIC_JIT_COMPILER
         runtime.eval();
