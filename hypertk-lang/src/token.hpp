@@ -41,6 +41,7 @@ namespace token
         IN,     // `in`
         UNARY,  // `unary`
         BINARY, // `binary`
+        VAR,    // `var`
         /** other */
         ERROR, // Present error
         END_OF_FILE,

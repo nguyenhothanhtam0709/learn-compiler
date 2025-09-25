@@ -16,6 +16,8 @@ namespace ast
     }
 
     //> Print statements
+    void SimplePrinter::visitVarDeclStmt(const statement::VarDecl &stmt) {}
+
     void SimplePrinter::visitFunctionStmt(const statement::Function &stmt)
     {
         printIndent();

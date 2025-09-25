@@ -82,6 +82,7 @@ namespace hypertk
         using ast::statement::Visitor<llvm::Value *>::visit;
 
         //> statements
+        llvm::Value *visitVarDeclStmt(const ast::statement::VarDecl &stmt);
         llvm::Value *visitFunctionStmt(const ast::statement::Function &stmt);
         llvm::Value *visitBinOpDefStmt(const ast::statement::BinOpDef &stmt);
         llvm::Value *visitUnaryOpDefStmt(const ast::statement::UnaryOpDef &stmt);

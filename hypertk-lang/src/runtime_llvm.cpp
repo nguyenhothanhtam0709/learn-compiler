@@ -163,6 +163,23 @@ namespace hypertk
 #endif
 
     //> statements
+    llvm::Value *RuntimeLLVM::visitVarDeclStmt(
+        const ast::statement::VarDecl &stmt)
+    {
+        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
+
+        llvm::Value *initializer = nullptr;
+        if (stmt.Initializer.has_value())
+            if (initializer = visit(stmt.Initializer.value()), !initializer)
+                return nullptr;
+
+        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName);
+        if (initializer)
+            Builder_->CreateStore(initializer, alloca_);
+
+        return nullptr;
+    }
+
     llvm::Value *RuntimeLLVM::visitFunctionStmt(
         const ast::statement::Function &stmt)
     {

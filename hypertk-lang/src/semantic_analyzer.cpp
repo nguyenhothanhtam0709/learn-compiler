@@ -17,6 +17,9 @@ namespace semantic_analysis
     }
 
     //> Print statements
+    bool BasicSemanticAnalyzer::visitVarDeclStmt(
+        const ast::statement::VarDecl &stmt) { return true; }
+
     bool BasicSemanticAnalyzer::visitFunctionStmt(
         const ast::statement::Function &stmt) { return true; }
 

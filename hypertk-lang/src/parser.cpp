@@ -47,7 +47,8 @@ namespace parser
     {
         if (match(TokenType::FUNC))
             return parseFunctionDeclaration();
-
+        if (match(TokenType::VAR))
+            return parseVariableDeclaration();
         return parseStatement();
     }
 
@@ -60,6 +61,28 @@ namespace parser
         if (match(TokenType::FOR))
             return parseForStmt();
         return parseExpressionStmt();
+    }
+
+    std::optional<ast::statement::VarDeclPtr> Parser::parseVariableDeclaration()
+    {
+        if (!match(TokenType::IDENTIFIER))
+        {
+            errorAtCurrent("Expect function name.");
+            return std::nullopt;
+        }
+
+        std::string varName = std::move(previous_.lexeme);
+
+        std::optional<ast::expression::ExprPtr> initializer = std::nullopt;
+        if (match(TokenType::EQUAL))
+        {
+            if (initializer = parseExpr(); !initializer.has_value())                return std::nullopt;
+        }
+
+        return std::make_unique<ast::statement::VarDecl>(std::move(varName),
+                                                         initializer.has_value()
+                                                             ? std::move(initializer.value())
+                                                             : (std::optional<ast::expression::ExprPtr>)std::nullopt);
     }
 
     /// functionDecl

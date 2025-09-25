@@ -224,6 +224,7 @@ namespace ast
     /** @brief Statement ast */
     namespace statement
     {
+        struct VarDecl;
         struct Function;
         struct BinOpDef;
         struct UnaryOpDef;
@@ -232,6 +233,7 @@ namespace ast
         struct If;
         struct For;
 
+        using VarDeclPtr = std::unique_ptr<VarDecl>;
         using FunctionPtr = std::unique_ptr<Function>;
         using BinOpDefPtr = std::unique_ptr<BinOpDef>;
         using UnaryOpDefPtr = std::unique_ptr<UnaryOpDef>;
@@ -239,13 +241,25 @@ namespace ast
         using ReturnPtr = std::unique_ptr<Return>;
         using IfPtr = std::unique_ptr<If>;
         using ForPtr = std::unique_ptr<For>;
-        using StmtPtr = std::variant<FunctionPtr,
+        using StmtPtr = std::variant<VarDeclPtr,
+                                     FunctionPtr,
                                      BinOpDefPtr,
                                      UnaryOpDefPtr,
                                      ExpressionPtr,
                                      ReturnPtr,
                                      IfPtr,
                                      ForPtr>;
+
+        /// @brief Variable declaration
+        struct VarDecl : private Uncopyable
+        {
+            std::string VarName;
+            std::optional<expression::ExprPtr> Initializer;
+
+            VarDecl(std::string varName, std::optional<StmtPtr> initializer_ = std::nullopt)
+                : VarName{std::move(varName)},
+                  Initializer{initializer_.has_value() ? std::move(initializer_) : std::nullopt} {}
+        };
 
         struct Function : private Uncopyable
         {
@@ -343,6 +357,10 @@ namespace ast
             {
                 return std::visit(
                     overloaded{
+                        [this](const VarDeclPtr &stmt)
+                        {
+                            return visitVarDeclStmt(*stmt);
+                        },
                         [this](const FunctionPtr &stmt)
                         {
                             return visitFunctionStmt(*stmt);
@@ -375,6 +393,7 @@ namespace ast
             }
 
         protected:
+            virtual R visitVarDeclStmt(const VarDecl &stmt) = 0;
             virtual R visitFunctionStmt(const Function &stmt) = 0;
             virtual R visitBinOpDefStmt(const BinOpDef &stmt) = 0;
             virtual R visitUnaryOpDefStmt(const UnaryOpDef &stmt) = 0;

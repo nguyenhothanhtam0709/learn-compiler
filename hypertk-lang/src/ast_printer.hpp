@@ -22,6 +22,7 @@ namespace ast
         using statement::Visitor<void>::visit;
 
         //> Print statements
+        void visitVarDeclStmt(const statement::VarDecl &stmt);
         void visitFunctionStmt(const statement::Function &stmt);
         void visitBinOpDefStmt(const statement::BinOpDef &stmt);
         void visitUnaryOpDefStmt(const statement::UnaryOpDef &stmt);
