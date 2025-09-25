@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <variant>
 
 #include "runtime_llvm.hpp"
 #include "common.hpp"
@@ -451,6 +452,33 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitBinaryExpr(
         const ast::expression::Binary &expr)
     {
+        // Special case '=' because we don't want to emit the LHS as an expression.
+        if (expr.Op == ast::BinaryOp::EQUAL)
+        {
+            // This assume we're building without RTTI because LLVM builds that way by
+            // default. If you build LLVM with RTTI this can be changed to a
+            // dynamic_cast for automatic error checking.
+            if (!std::holds_alternative<ast::expression::VariablePtr>(expr.LHS))
+            {
+                logError("destination of '=' must be a variable");
+                return nullptr;
+            }
+
+            ast::expression::VariablePtr LHSE = std::get_if<ast::expression::VariablePtr>(&expr.LHS);
+            llvm::Value *variable = NamedValues_[LHSE->Name];
+            if (!variable)
+            {
+                logError("Unknown variable name.");
+                return nullptr;
+            }
+
+            llvm::Value *RHS = visit(expr.RHS);
+            if (!RHS)
+                return nullptr;
+
+            return Builder_->CreateStore(RHS, variable);
+        }
+
         llvm::Value *L = visit(expr.LHS);
         if (!L)
             return nullptr;

@@ -12,6 +12,7 @@ namespace parser
     Parser::Parser(lexer::Lexer &&lexer_)
         : lexer_{std::move(lexer_)}, panicMode_{false}
     {
+        binopPrec_[TokenType::EQUAL] = 2;
         binopPrec_[TokenType::QUESTION_MARK] = 5;
         binopPrec_[TokenType::LESS] = 10;
         binopPrec_[TokenType::PLUS] = 20;

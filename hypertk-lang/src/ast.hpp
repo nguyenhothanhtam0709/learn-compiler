@@ -19,12 +19,12 @@ namespace ast
         MUL = (int)token::TokenType::STAR,
         DIV = (int)token::TokenType::SLASH,
         LESS = (int)token::TokenType::LESS,
+        EQUAL = (int)token::TokenType::EQUAL,
         // Operators allow user to define custom behaviour
         GREATER = (int)token::TokenType::GREATER,
         EXCLAMATION = (int)token::TokenType::EXCLAMATION,
         VERTICAL_BAR = (int)token::TokenType::VERTICAL_BAR,
         AMPERSAND = (int)token::TokenType::AMPERSAND,
-        EQUAL = (int)token::TokenType::EQUAL,
         COLON = (int)token::TokenType::COLON,
     };
 
