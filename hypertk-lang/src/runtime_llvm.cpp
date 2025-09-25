@@ -418,7 +418,7 @@ namespace hypertk
         llvm::Value *curVar = Builder_->CreateLoad(alloca_->getAllocatedType(),
                                                    alloca_,
                                                    stmt.VarName.c_str());
-        llvm::Value *nextVar = Builder_->CreateAdd(curVar, stepVal, "nextvar");
+        llvm::Value *nextVar = Builder_->CreateFAdd(curVar, stepVal, "nextvar");
         Builder_->CreateStore(nextVar, alloca_);
 
         // Convert condition to a bool by comparing non-equal to 0.0.
