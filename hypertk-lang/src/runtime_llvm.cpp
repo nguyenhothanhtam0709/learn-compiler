@@ -34,6 +34,7 @@
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 #endif
 
 namespace hypertk
@@ -81,6 +82,8 @@ namespace hypertk
         TheSI_->registerCallbacks(*ThePIC_, TheMAM_.get());
 
         // Add transformation passes
+        // Promote allocas to registers.
+        TheFPM_->addPass(llvm::PromotePass());
         // Do simple "peephole" optimizations and bit-twiddling optzns.
         TheFPM_->addPass(llvm::InstCombinePass());
         // Reassociate expressions.
@@ -225,7 +228,16 @@ namespace hypertk
         // Record the function arguments in the NamedValues map.
         NamedValues_.clear();
         for (auto &arg : theFunction->args())
-            NamedValues_[std::string(arg.getName())] = &arg;
+        {
+            // Create an alloca for this variable
+            llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, arg.getName());
+
+            // Store the initial value to the alloca
+            Builder_->CreateStore(&arg, alloca_);
+
+            // Add arguments to variable symbol table
+            NamedValues_[std::string(arg.getName())] = alloca_;
+        }
 
         for (const auto &fStmt : stmt.Body)
             visit(fStmt);
@@ -340,14 +352,20 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitForStmt(
         const ast::statement::For &stmt)
     {
+        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
+
+        // Create an alloca for the variable in the entry block.
+        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName);
+
         // Emit the start code first, without `variable` in scope.
         llvm::Value *startVal = visit(stmt.Start);
         if (!startVal)
             return nullptr;
 
+        // Store the value into the alloca
+        Builder_->CreateStore(startVal, alloca_);
+
         // Make the new basic block for the loop header, inserting after current block.
-        llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
-        llvm::BasicBlock *preheaderBB = Builder_->GetInsertBlock();
         llvm::BasicBlock *loopBB = llvm::BasicBlock::Create(*TheContext_, "loop", theFunction);
 
         // Insert an explicit fall through from the current block to the loopBB
@@ -356,14 +374,10 @@ namespace hypertk
         // Start insertion in loopBB
         Builder_->SetInsertPoint(loopBB);
 
-        // Start the PHI node with and entry for Start.
-        llvm::PHINode *variable = Builder_->CreatePHI(llvm::Type::getDoubleTy(*TheContext_), 2, stmt.VarName);
-        variable->addIncoming(startVal, preheaderBB);
-
         // Within the loop, the variable is defined equal to the PHI node.  If it
         // shadows an existing variable, we have to restore it, so save it now.
-        llvm::Value *oldVal = NamedValues_[stmt.VarName];
-        NamedValues_[stmt.VarName] = variable;
+        llvm::AllocaInst *oldVal = NamedValues_[stmt.VarName];
+        NamedValues_[stmt.VarName] = alloca_;
 
         // Emit the body of the loop.  This, like any other expr, can change the
         // current BB.  Note that we ignore the value computed by the body, but don't
@@ -376,17 +390,23 @@ namespace hypertk
         if (!stepVal)
             return nullptr;
 
-        llvm::Value *nextVar = Builder_->CreateFAdd(variable, stepVal, "nextvar");
-
         // Compute the end condition.
         llvm::Value *endCond = visit(stmt.End);
         if (!endCond)
             return nullptr;
+
+        // Reload, increment and restore the alloca. This handles the case where
+        // the body of the loop mutates the variable.
+        llvm::Value *curVar = Builder_->CreateLoad(alloca_->getAllocatedType(),
+                                                   alloca_,
+                                                   stmt.VarName.c_str());
+        llvm::Value *nextVar = Builder_->CreateAdd(curVar, stepVal, "nextvar");
+        Builder_->CreateStore(nextVar, alloca_);
+
         // Convert condition to a bool by comparing non-equal to 0.0.
         endCond = Builder_->CreateFCmpONE(endCond, llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)), "loopcond");
 
         // Create the `after loop` block and insert it.
-        llvm::BasicBlock *loopEndBB = Builder_->GetInsertBlock();
         llvm::BasicBlock *afterBB = llvm::BasicBlock::Create(*TheContext_, "afterloop", theFunction);
 
         // Insert the conditional branch into the end of loopEndBB
@@ -394,9 +414,6 @@ namespace hypertk
 
         // any new code will be inserted in afterBB;
         Builder_->SetInsertPoint(afterBB);
-
-        // Add a new entry to the PHI node for the backedge.
-        variable->addIncoming(nextVar, loopEndBB);
 
         // Restore the unshadowed variable.
         if (oldVal)
@@ -418,14 +435,17 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitVariableExpr(
         const ast::expression::Variable &expr)
     {
-        llvm::Value *v = NamedValues_[expr.Name];
-        if (!v)
+        llvm::AllocaInst *a = NamedValues_[expr.Name];
+        if (!a)
         {
             logError("Unknown variable name");
             return nullptr;
         }
 
-        return v;
+        // Load value
+        return Builder_->CreateLoad(a->getAllocatedType(),
+                                    a,
+                                    expr.Name.c_str());
     }
 
     llvm::Value *RuntimeLLVM::visitBinaryExpr(
@@ -575,6 +595,16 @@ namespace hypertk
     }
     //<
 
+    llvm::AllocaInst *RuntimeLLVM::createEntryBlockAlloca(
+        llvm::Function *theFunction,
+        llvm::StringRef varName)
+    {
+        llvm::IRBuilder<> tmpB(&theFunction->getEntryBlock(),
+                               theFunction->getEntryBlock().begin());
+        return tmpB.CreateAlloca(llvm::Type::getDoubleTy(*TheContext_),
+                                 nullptr,
+                                 varName);
+    }
     void RuntimeLLVM::logError(const std::string &msg)
     {
         error::error(0, msg);

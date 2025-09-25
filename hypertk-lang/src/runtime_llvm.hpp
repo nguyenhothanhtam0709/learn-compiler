@@ -55,7 +55,7 @@ namespace hypertk
         std::unique_ptr<llvm::LLVMContext> TheContext_ = nullptr;
         std::unique_ptr<llvm::IRBuilder<>> Builder_ = nullptr;
         std::unique_ptr<llvm::Module> TheModule_ = nullptr;
-        std::map<std::string, llvm::Value *> NamedValues_;
+        std::map<std::string, llvm::AllocaInst *> NamedValues_;
         llvm::ExitOnError ExitOnErr;
 #ifdef ENABLE_BASIC_JIT_COMPILER
         std::unique_ptr<HyperTkJIT> TheJIT_ = nullptr;
@@ -103,6 +103,9 @@ namespace hypertk
         llvm::Value *visitCallExpr(const ast::expression::Call &expr);
         //<
 
+        /// @brief Create an alloca instruction in the entry block of the function. This is used for mutable variables etc.
+        llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *theFunction,
+                                                 llvm::StringRef varName);
         void logError(const std::string &msg);
     };
 } // namespace codegen
