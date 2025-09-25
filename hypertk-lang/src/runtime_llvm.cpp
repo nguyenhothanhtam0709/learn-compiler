@@ -481,8 +481,8 @@ namespace hypertk
                 return nullptr;
             }
 
-            ast::expression::VariablePtr LHSE = std::get_if<ast::expression::VariablePtr>(&expr.LHS);
-            llvm::Value *variable = NamedValues_[LHSE->Name];
+            auto LHSE = std::get_if<ast::expression::VariablePtr>(&expr.LHS);
+            llvm::Value *variable = NamedValues_[LHSE->get()->Name];
             if (!variable)
             {
                 logError("Unknown variable name.");

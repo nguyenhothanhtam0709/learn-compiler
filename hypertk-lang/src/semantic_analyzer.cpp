@@ -85,8 +85,8 @@ namespace semantic_analysis
     bool BasicSemanticAnalyzer::visitCallExpr(
         const ast::expression::Call &expr)
     {
-        if (!visit(expr.Callee))
-            return false;
+        // if (!visit(expr.Callee))
+        //     return false;
 
         for (const auto &expr_ : expr.Args)
             if (!visit(expr_))

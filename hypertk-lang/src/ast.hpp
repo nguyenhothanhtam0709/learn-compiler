@@ -256,9 +256,12 @@ namespace ast
             std::string VarName;
             std::optional<expression::ExprPtr> Initializer;
 
-            VarDecl(std::string varName, std::optional<StmtPtr> initializer_ = std::nullopt)
+            VarDecl(std::string varName,
+                    std::optional<expression::ExprPtr> initializer_ = std::nullopt)
                 : VarName{std::move(varName)},
-                  Initializer{initializer_.has_value() ? std::move(initializer_) : std::nullopt} {}
+                  Initializer{initializer_.has_value()
+                                  ? std::move(initializer_)
+                                  : std::nullopt} {}
         };
 
         struct Function : private Uncopyable
