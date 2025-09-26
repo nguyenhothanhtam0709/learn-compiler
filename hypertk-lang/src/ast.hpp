@@ -374,7 +374,7 @@ namespace ast
                     overloaded{
                         [this](const BlockPtr &stmt)
                         {
-                            return visitBlockStmt(stmt);
+                            return visitBlockStmt(*stmt);
                         },
                         [this](const VarDeclPtr &stmt)
                         {

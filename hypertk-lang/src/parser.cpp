@@ -166,7 +166,7 @@ namespace parser
 
         std::vector<ast::statement::StmtPtr> stmts;
         if (!check(TokenType::RIGHT_BRACE))
-            stmts = std::move(parseBlock());
+            stmts = parseBlock();
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
@@ -274,7 +274,7 @@ namespace parser
 
     std::optional<ast::statement::BlockPtr> Parser::parseBlockStmt()
     {
-        std::vector<ast::statement::StmtPtr> statements = std::move(parseBlock());
+        std::vector<ast::statement::StmtPtr> statements = parseBlock();
         consume(TokenType::RIGHT_BRACE, "Expect '}' at the end of block.");
         return std::make_unique<ast::statement::Block>(std::move(statements));
     }
@@ -287,7 +287,7 @@ namespace parser
             if (auto stmt = parseDeclaration(); stmt.has_value())
                 statements.push_back(std::move(stmt.value()));
 
-        return std::move(statements);
+        return statements;
     }
     //>
 
