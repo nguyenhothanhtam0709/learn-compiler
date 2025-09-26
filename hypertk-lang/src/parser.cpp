@@ -60,6 +60,8 @@ namespace parser
             return parseIfStmt();
         if (match(TokenType::FOR))
             return parseForStmt();
+        if (match(TokenType::LEFT_BRACE))
+            return parseBlockStmt();
         return parseExpressionStmt();
     }
 
@@ -76,7 +78,8 @@ namespace parser
         std::optional<ast::expression::ExprPtr> initializer = std::nullopt;
         if (match(TokenType::EQUAL))
         {
-            if (initializer = parseExpr(); !initializer.has_value())                return std::nullopt;
+            if (initializer = parseExpr(); !initializer.has_value())
+                return std::nullopt;
         }
 
         return std::make_unique<ast::statement::VarDecl>(std::move(varName),
@@ -162,14 +165,8 @@ namespace parser
         consume(TokenType::LEFT_BRACE, "Expect '{'.");
 
         std::vector<ast::statement::StmtPtr> stmts;
-        while (!check(TokenType::RIGHT_BRACE))
-        {
-            if (auto stmt = parseStatement(); stmt.has_value())
-            {
-                stmts.emplace_back(std::move(stmt.value()));
-                continue;
-            }
-        }
+        if (!check(TokenType::RIGHT_BRACE))
+            stmts = std::move(parseBlock());
 
         consume(TokenType::RIGHT_BRACE, "Expect '}'.");
 
@@ -273,6 +270,24 @@ namespace parser
                                                      std::move(end.value()),
                                                      std::move(step.value()),
                                                      std::move(body.value()));
+    }
+
+    std::optional<ast::statement::BlockPtr> Parser::parseBlockStmt()
+    {
+        std::vector<ast::statement::StmtPtr> statements = std::move(parseBlock());
+        consume(TokenType::RIGHT_BRACE, "Expect '}' at the end of block.");
+        return std::make_unique<ast::statement::Block>(std::move(statements));
+    }
+
+    std::vector<ast::statement::StmtPtr> Parser::parseBlock()
+    {
+        std::vector<ast::statement::StmtPtr> statements;
+
+        while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE))
+            if (auto stmt = parseDeclaration(); stmt.has_value())
+                statements.push_back(std::move(stmt.value()));
+
+        return std::move(statements);
     }
     //>
 

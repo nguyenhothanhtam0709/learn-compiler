@@ -163,6 +163,12 @@ namespace hypertk
 #endif
 
     //> statements
+    llvm::Value *RuntimeLLVM::visitBlockStmt(
+        const ast::statement::Block &stmt)
+    {
+        return nullptr;
+    }
+
     llvm::Value *RuntimeLLVM::visitVarDeclStmt(
         const ast::statement::VarDecl &stmt)
     {

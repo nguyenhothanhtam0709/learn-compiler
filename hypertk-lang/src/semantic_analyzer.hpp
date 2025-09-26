@@ -25,6 +25,7 @@ namespace semantic_analysis
         using ast::expression::Visitor<bool>::visit;
 
         //> Print statements
+        bool visitBlockStmt(const ast::statement::Block &stmt);
         bool visitVarDeclStmt(const ast::statement::VarDecl &stmt);
         bool visitFunctionStmt(const ast::statement::Function &stmt);
         bool visitBinOpDefStmt(const ast::statement::BinOpDef &stmt);

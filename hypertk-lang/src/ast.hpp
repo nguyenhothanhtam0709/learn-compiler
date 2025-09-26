@@ -224,6 +224,7 @@ namespace ast
     /** @brief Statement ast */
     namespace statement
     {
+        struct Block;
         struct VarDecl;
         struct Function;
         struct BinOpDef;
@@ -233,6 +234,7 @@ namespace ast
         struct If;
         struct For;
 
+        using BlockPtr = std::unique_ptr<Block>;
         using VarDeclPtr = std::unique_ptr<VarDecl>;
         using FunctionPtr = std::unique_ptr<Function>;
         using BinOpDefPtr = std::unique_ptr<BinOpDef>;
@@ -241,7 +243,8 @@ namespace ast
         using ReturnPtr = std::unique_ptr<Return>;
         using IfPtr = std::unique_ptr<If>;
         using ForPtr = std::unique_ptr<For>;
-        using StmtPtr = std::variant<VarDeclPtr,
+        using StmtPtr = std::variant<BlockPtr,
+                                     VarDeclPtr,
                                      FunctionPtr,
                                      BinOpDefPtr,
                                      UnaryOpDefPtr,
@@ -249,6 +252,15 @@ namespace ast
                                      ReturnPtr,
                                      IfPtr,
                                      ForPtr>;
+
+        /// @brief Block statement, a collection of many statements
+        struct Block : private Uncopyable
+        {
+            std::vector<StmtPtr> Statements;
+
+            explicit Block(std::vector<StmtPtr> statements)
+                : Statements{std::move(statements)} {}
+        };
 
         /// @brief Variable declaration
         struct VarDecl : private Uncopyable
@@ -360,6 +372,10 @@ namespace ast
             {
                 return std::visit(
                     overloaded{
+                        [this](const BlockPtr &stmt)
+                        {
+                            return visitBlockStmt(stmt);
+                        },
                         [this](const VarDeclPtr &stmt)
                         {
                             return visitVarDeclStmt(*stmt);
@@ -396,6 +412,7 @@ namespace ast
             }
 
         protected:
+            virtual R visitBlockStmt(const Block &stmt) = 0;
             virtual R visitVarDeclStmt(const VarDecl &stmt) = 0;
             virtual R visitFunctionStmt(const Function &stmt) = 0;
             virtual R visitBinOpDefStmt(const BinOpDef &stmt) = 0;
