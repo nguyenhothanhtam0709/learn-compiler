@@ -73,7 +73,7 @@ namespace parser
             return std::nullopt;
         }
 
-        std::string varName = std::move(previous_.lexeme);
+        token::Token varName = std::move(previous_);
 
         std::optional<ast::expression::ExprPtr> initializer = std::nullopt;
         if (match(TokenType::EQUAL))
@@ -93,7 +93,7 @@ namespace parser
     ///   ::= binary LETTER number? (id, id)
     std::optional<ast::statement::FunctionPtr> Parser::parseFunctionDeclaration()
     {
-        std::string funcName;
+        token::Token funcName;
         ast::FuncKind funcKind = ast::FuncKind::FUNCTION; // 0 = identifier, 1 = unary, 2 = binary.
         unsigned binPrec = 30;
         TokenType binOpType;
@@ -104,10 +104,10 @@ namespace parser
         {
             funcKind = ast::FuncKind::BINARY_OP;
 
-            funcName = std::move(current_.lexeme);
+            funcName = std::move(current_);
             advance();
             binOpType = current_.type;
-            funcName += current_.lexeme; // operator
+            funcName.lexeme += current_.lexeme; // operator
             advance();
 
             if (match(TokenType::NUMBER))
@@ -123,10 +123,10 @@ namespace parser
         {
             funcKind = ast::FuncKind::UNARY_OP;
 
-            funcName = std::move(current_.lexeme);
+            funcName = std::move(current_);
             advance();
             binOpType = current_.type;
-            funcName += current_.lexeme; // operator
+            funcName.lexeme += current_.lexeme; // operator
             advance();
 
             break;
@@ -134,7 +134,7 @@ namespace parser
         case TokenType::IDENTIFIER:
         {
             funcKind = ast::FuncKind::FUNCTION;
-            funcName = std::move(current_.lexeme);
+            funcName = std::move(current_);
             advance();
             break;
         }
@@ -151,13 +151,13 @@ namespace parser
         consume(TokenType::LEFT_PAREN, "Expect '(' after function name.");
 
         // Read the list of argument names.
-        std::vector<std::string> args;
+        std::vector<token::Token> args;
         if (!check(TokenType::RIGHT_PAREN))
         {
             do
             {
                 advance();
-                args.push_back(std::move(previous_.lexeme));
+                args.push_back(std::move(previous_));
             } while (match(TokenType::COMMA));
         }
 
@@ -265,7 +265,7 @@ namespace parser
         if (!body.has_value())
             return std::nullopt;
 
-        return std::make_unique<ast::statement::For>(std::move(nameToken.lexeme),
+        return std::make_unique<ast::statement::For>(std::move(nameToken),
                                                      std::move(start.value()),
                                                      std::move(end.value()),
                                                      std::move(step.value()),
@@ -393,7 +393,7 @@ namespace parser
     {
         token::Token name = std::move(previous_);
         if (!match(TokenType::LEFT_PAREN))
-            return std::make_unique<ast::expression::Variable>(std::move(name.lexeme));
+            return std::make_unique<ast::expression::Variable>(std::move(name));
 
         //> Parse call expression
         std::vector<ast::expression::ExprPtr> args;
@@ -412,7 +412,8 @@ namespace parser
         }
         consume(TokenType::RIGHT_PAREN, "Expect ')'");
 
-        return std::make_unique<ast::expression::Call>(std::move(name.lexeme), std::move(args));
+        return std::make_unique<ast::expression::Call>(std::make_unique<ast::expression::Variable>(std::move(name)),
+                                                       std::move(args));
         //<
     }
 

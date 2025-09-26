@@ -179,7 +179,7 @@ namespace hypertk
             if (initializer = visit(stmt.Initializer.value()), !initializer)
                 return nullptr;
 
-        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName);
+        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName.lexeme);
         if (initializer)
             Builder_->CreateStore(initializer, alloca_);
 
@@ -220,21 +220,21 @@ namespace hypertk
     llvm::Function *RuntimeLLVM::genFunctionPrototype(
         const ast::statement::Function &stmt)
     {
-        llvm::Function *theFunction = TheModule_->getFunction(stmt.Name);
+        llvm::Function *theFunction = TheModule_->getFunction(stmt.Name.lexeme);
         if (theFunction && !theFunction->empty())
         {
             logError("Function cannot be redefined.");
             return nullptr;
         }
 
-        std::vector<llvm::Type *> Doubles(stmt.Args.size(), llvm::Type::getDoubleTy(*TheContext_));
+        std::vector<llvm::Type *> Doubles(stmt.Params.size(), llvm::Type::getDoubleTy(*TheContext_));
         llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getDoubleTy(*TheContext_), Doubles, false);
-        theFunction = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, stmt.Name, TheModule_.get());
+        theFunction = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, stmt.Name.lexeme, TheModule_.get());
 
         // Set argument names
         unsigned idx = 0;
         for (auto &arg : theFunction->args())
-            arg.setName(stmt.Args[idx++]);
+            arg.setName(stmt.Params[idx++].lexeme);
 
         return theFunction;
     }
@@ -379,7 +379,7 @@ namespace hypertk
         llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
 
         // Create an alloca for the variable in the entry block.
-        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName);
+        llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName.lexeme);
 
         // Emit the start code first, without `variable` in scope.
         llvm::Value *startVal = visit(stmt.Start);
@@ -400,8 +400,8 @@ namespace hypertk
 
         // Within the loop, the variable is defined equal to the PHI node.  If it
         // shadows an existing variable, we have to restore it, so save it now.
-        llvm::AllocaInst *oldVal = NamedValues_[stmt.VarName];
-        NamedValues_[stmt.VarName] = alloca_;
+        llvm::AllocaInst *oldVal = NamedValues_[stmt.VarName.lexeme];
+        NamedValues_[stmt.VarName.lexeme] = alloca_;
 
         // Emit the body of the loop.  This, like any other expr, can change the
         // current BB.  Note that we ignore the value computed by the body, but don't
@@ -423,7 +423,7 @@ namespace hypertk
         // the body of the loop mutates the variable.
         llvm::Value *curVar = Builder_->CreateLoad(alloca_->getAllocatedType(),
                                                    alloca_,
-                                                   stmt.VarName.c_str());
+                                                   stmt.VarName.lexeme.c_str());
         llvm::Value *nextVar = Builder_->CreateFAdd(curVar, stepVal, "nextvar");
         Builder_->CreateStore(nextVar, alloca_);
 
@@ -441,9 +441,9 @@ namespace hypertk
 
         // Restore the unshadowed variable.
         if (oldVal)
-            NamedValues_[stmt.VarName] = oldVal;
+            NamedValues_[stmt.VarName.lexeme] = oldVal;
         else
-            NamedValues_.erase(stmt.VarName);
+            NamedValues_.erase(stmt.VarName.lexeme);
 
         return nullptr;
     }
@@ -459,7 +459,7 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitVariableExpr(
         const ast::expression::Variable &expr)
     {
-        llvm::AllocaInst *a = NamedValues_[expr.Name];
+        llvm::AllocaInst *a = NamedValues_[expr.Name.lexeme];
         if (!a)
         {
             logError("Unknown variable name");
@@ -469,7 +469,7 @@ namespace hypertk
         // Load value
         return Builder_->CreateLoad(a->getAllocatedType(),
                                     a,
-                                    expr.Name.c_str());
+                                    expr.Name.lexeme.c_str());
     }
 
     llvm::Value *RuntimeLLVM::visitBinaryExpr(
@@ -488,7 +488,7 @@ namespace hypertk
             }
 
             auto LHSE = std::get_if<ast::expression::VariablePtr>(&expr.LHS);
-            llvm::Value *variable = NamedValues_[LHSE->get()->Name];
+            llvm::Value *variable = NamedValues_[LHSE->get()->Name.lexeme];
             if (!variable)
             {
                 logError("Unknown variable name.");
@@ -619,10 +619,10 @@ namespace hypertk
         const ast::expression::Call &expr)
     {
         // Look up the name in the global module table.
-        llvm::Function *calleeF = TheModule_->getFunction(expr.Callee);
+        llvm::Function *calleeF = TheModule_->getFunction(expr.Callee->Name.lexeme);
         if (!calleeF)
         {
-            logError(std::string("Unknown referenced function [ ") + expr.Callee + " ]");
+            logError(std::string("Unknown referenced function [ ") + expr.Callee->Name.lexeme + " ]");
             return nullptr;
         }
 

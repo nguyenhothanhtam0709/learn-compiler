@@ -130,9 +130,9 @@ namespace ast
 
         struct Variable : private Uncopyable
         {
-            std::string Name;
+            token::Token Name;
 
-            explicit Variable(const std::string &name) : Name{name} {}
+            explicit Variable(token::Token name) : Name{std::move(name)} {}
         };
 
         struct Binary : private Uncopyable
@@ -159,7 +159,7 @@ namespace ast
             ExprPtr Then;
             ExprPtr Else;
 
-            Conditional(expression::ExprPtr cond, ExprPtr then_, ExprPtr else_)
+            Conditional(ExprPtr cond, ExprPtr then_, ExprPtr else_)
                 : Cond{std::move(cond)},
                   Then{std::move(then_)},
                   Else{std::move(else_)} {}
@@ -167,12 +167,12 @@ namespace ast
 
         struct Call : private Uncopyable
         {
-            std::string Callee;
+            VariablePtr Callee;
             std::vector<ExprPtr> Args;
 
-            Call(const std::string &Callee,
+            Call(VariablePtr Callee,
                  std::vector<ExprPtr> Args)
-                : Callee(Callee), Args(std::move(Args)) {}
+                : Callee{std::move(Callee)}, Args{std::move(Args)} {}
         };
 
         template <typename R>
@@ -265,10 +265,10 @@ namespace ast
         /// @brief Variable declaration
         struct VarDecl : private Uncopyable
         {
-            std::string VarName;
+            token::Token VarName;
             std::optional<expression::ExprPtr> Initializer;
 
-            VarDecl(std::string varName,
+            VarDecl(token::Token varName,
                     std::optional<expression::ExprPtr> initializer_ = std::nullopt)
                 : VarName{std::move(varName)},
                   Initializer{initializer_.has_value()
@@ -278,14 +278,16 @@ namespace ast
 
         struct Function : private Uncopyable
         {
-            std::string Name;
-            std::vector<std::string> Args;
+            token::Token Name;
+            std::vector<token::Token> Params;
             std::vector<StmtPtr> Body;
 
-            Function(const std::string &name,
-                     std::vector<std::string> args,
+            Function(token::Token name,
+                     std::vector<token::Token> params,
                      std::vector<StmtPtr> body)
-                : Name{name}, Args{std::move(args)}, Body{std::move(body)} {}
+                : Name{std::move(name)},
+                  Params{std::move(params)},
+                  Body{std::move(body)} {}
         };
 
         /** @brief define custom binary operator */
@@ -293,29 +295,29 @@ namespace ast
         {
             unsigned Precedence;
 
-            BinOpDef(const std::string &name,
-                     std::vector<std::string> args,
+            BinOpDef(token::Token name,
+                     std::vector<token::Token> params,
                      std::vector<StmtPtr> body,
                      unsigned prec = 0)
-                : Function(std::move(name), std::move(args), std::move(body)), Precedence{prec} {}
+                : Function(std::move(name), std::move(params), std::move(body)), Precedence{prec} {}
 
             const char getOperator() const
             {
-                return Name[Name.size() - 1];
+                return Name.lexeme[Name.lexeme.size() - 1];
             }
         };
 
         /** @brief define custom unary operator */
         struct UnaryOpDef : public Function
         {
-            UnaryOpDef(const std::string &name,
-                       std::vector<std::string> args,
+            UnaryOpDef(token::Token name,
+                       std::vector<token::Token> params,
                        std::vector<StmtPtr> body)
-                : Function(std::move(name), std::move(args), std::move(body)) {}
+                : Function(std::move(name), std::move(params), std::move(body)) {}
 
             const char getOperator() const
             {
-                return Name[Name.size() - 1];
+                return Name.lexeme[Name.lexeme.size() - 1];
             }
         };
 
@@ -347,11 +349,11 @@ namespace ast
 
         struct For : private Uncopyable
         {
-            std::string VarName;
+            token::Token VarName;
             expression::ExprPtr Start, End, Step;
             StmtPtr Body;
 
-            For(const std::string &varName,
+            For(token::Token varName,
                 expression::ExprPtr start,
                 expression::ExprPtr end,
                 expression::ExprPtr step,
