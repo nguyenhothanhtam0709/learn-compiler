@@ -1,6 +1,10 @@
 #ifndef HYPERTK_SEMANTIC_ANALYZER_HPP
 #define HYPERTK_SEMANTIC_ANALYZER_HPP
 
+#include <vector>
+#include <unordered_map>
+#include <string>
+
 #include "common.hpp"
 #include "ast.hpp"
 
@@ -19,6 +23,7 @@ namespace semantic_analysis
 
     private:
         const ast::Program &program_;
+        std::vector<std::unordered_map<std::string, bool>> scopes_;
 
     protected:
         using ast::statement::Visitor<bool>::visit;
@@ -44,6 +49,12 @@ namespace semantic_analysis
         bool visitConditionalExpr(const ast::expression::Conditional &expr);
         bool visitCallExpr(const ast::expression::Call &expr);
         //<
+
+        inline bool resolveFunctionBody(const ast::statement::Function &stmt);
+        inline void beginScope();
+        inline void endScope();
+        inline bool declare(const token::Token &name);
+        inline bool define(const token::Token &name);
     };
 } // namespace hypertk
 
