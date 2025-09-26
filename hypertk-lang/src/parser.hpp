@@ -36,7 +36,7 @@ namespace parser
         std::optional<ast::statement::IfPtr> parseIfStmt();
         std::optional<ast::statement::ForPtr> parseForStmt();
         std::optional<ast::statement::BlockPtr> parseBlockStmt();
-        std::vector<ast::statement::StmtPtr> parseBlock();
+        inline std::vector<ast::statement::StmtPtr> parseBlock();
         //<
 
         //> Parse expression

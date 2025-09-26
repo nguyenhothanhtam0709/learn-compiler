@@ -279,7 +279,7 @@ namespace parser
         return std::make_unique<ast::statement::Block>(std::move(statements));
     }
 
-    std::vector<ast::statement::StmtPtr> Parser::parseBlock()
+    inline std::vector<ast::statement::StmtPtr> Parser::parseBlock()
     {
         std::vector<ast::statement::StmtPtr> statements;
 
