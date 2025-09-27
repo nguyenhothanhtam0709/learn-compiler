@@ -7,13 +7,13 @@ TARGET = hypertk
 SRC    = $(wildcard src/*.cpp)
 OBJ    = $(SRC:src/%.cpp=build/%.o)
 
+# default 
+all: $(TARGET)
+
 dev: clean run
 
 run: $(TARGET)
 	./$(TARGET)
-
-# default 
-all: $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CXX) -o $@ $^ $(LDFLAGS)
