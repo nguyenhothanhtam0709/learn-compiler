@@ -16,12 +16,16 @@ namespace ast
     }
 
     //> Print statements
+    void SimplePrinter::visitBlockStmt(const statement::Block &stmt) {}
+
+    void SimplePrinter::visitVarDeclStmt(const statement::VarDecl &stmt) {}
+
     void SimplePrinter::visitFunctionStmt(const statement::Function &stmt)
     {
         printIndent();
-        std::cout << "FunctionDeclaration [ " << stmt.Name << " ]  Arguments: ";
-        for (const auto &arg : stmt.Args)
-            std::cout << arg << " ";
+        std::cout << "FunctionDeclaration [ " << stmt.Name.lexeme << " ]  Params: ";
+        for (const auto &param : stmt.Params)
+            std::cout << param.lexeme << " ";
         std::cout << '\n';
 
         increaseIndent();
@@ -94,7 +98,7 @@ namespace ast
     void SimplePrinter::visitVariableExpr(const expression::Variable &expr)
     {
         printIndent();
-        std::cout << "Variable [ " << expr.Name << " ]\n";
+        std::cout << "Variable [ " << expr.Name.lexeme << " ]\n";
     }
 
     void SimplePrinter::visitBinaryExpr(const expression::Binary &expr)

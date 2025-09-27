@@ -119,6 +119,8 @@ namespace lexer
             type = token::TokenType::UNARY;
         else if (lexeme == "binary")
             type = token::TokenType::BINARY;
+        else if (lexeme == "var")
+            type = token::TokenType::VAR;
         else
             type = token::TokenType::IDENTIFIER;
 

@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <map>
+#include <vector>
 
 #include "token.hpp"
 #include "ast.hpp"
@@ -28,11 +29,14 @@ namespace parser
         //> Parse statement
         std::optional<ast::statement::StmtPtr> parseDeclaration();
         std::optional<ast::statement::StmtPtr> parseStatement();
+        std::optional<ast::statement::VarDeclPtr> parseVariableDeclaration();
         std::optional<ast::statement::FunctionPtr> parseFunctionDeclaration();
         std::optional<ast::statement::ExpressionPtr> parseExpressionStmt();
         std::optional<ast::statement::ReturnPtr> parseReturnStmt();
         std::optional<ast::statement::IfPtr> parseIfStmt();
         std::optional<ast::statement::ForPtr> parseForStmt();
+        std::optional<ast::statement::BlockPtr> parseBlockStmt();
+        inline std::vector<ast::statement::StmtPtr> parseBlock();
         //<
 
         //> Parse expression
