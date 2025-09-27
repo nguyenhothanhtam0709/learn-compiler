@@ -4,6 +4,8 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 #include "common.hpp"
 #include "ast.hpp"
@@ -26,6 +28,8 @@
 
 namespace hypertk
 {
+    using ScopeTable = std::unordered_map<std::string, llvm::Value *>;
+
     class RuntimeLLVM
         : private Uncopyable,
           protected ast::statement::Visitor<llvm::Value *>,
@@ -55,7 +59,7 @@ namespace hypertk
         std::unique_ptr<llvm::LLVMContext> TheContext_ = nullptr;
         std::unique_ptr<llvm::IRBuilder<>> Builder_ = nullptr;
         std::unique_ptr<llvm::Module> TheModule_ = nullptr;
-        std::map<std::string, llvm::AllocaInst *> NamedValues_;
+        // std::map<std::string, llvm::AllocaInst *> NamedValues_;
         llvm::ExitOnError ExitOnErr;
 #ifdef ENABLE_BASIC_JIT_COMPILER
         std::unique_ptr<HyperTkJIT> TheJIT_ = nullptr;
@@ -76,6 +80,7 @@ namespace hypertk
         /** @brief standard instrumentation */
         std::unique_ptr<llvm::StandardInstrumentations> TheSI_ = nullptr;
 #endif
+        std::vector<ScopeTable> scopes_;
 
     protected:
         using ast::expression::Visitor<llvm::Value *>::visit;
@@ -87,9 +92,6 @@ namespace hypertk
         llvm::Value *visitFunctionStmt(const ast::statement::Function &stmt);
         llvm::Value *visitBinOpDefStmt(const ast::statement::BinOpDef &stmt);
         llvm::Value *visitUnaryOpDefStmt(const ast::statement::UnaryOpDef &stmt);
-        llvm::Function *genFunctionPrototype(const ast::statement::Function &stmt);
-        llvm::Function *genFunctionBody(const ast::statement::Function &stmt,
-                                        llvm::Function *theFunction);
         llvm::Value *visitExpressionStmt(const ast::statement::Expression &stmt);
         llvm::Value *visitReturnStmt(const ast::statement::Return &stmt);
         llvm::Value *visitIfStmt(const ast::statement::If &stmt);
@@ -105,10 +107,14 @@ namespace hypertk
         llvm::Value *visitCallExpr(const ast::expression::Call &expr);
         //<
 
+        inline void beginScope();
+        inline void endScope();
+        inline ScopeTable &currentScope();
+        llvm::Value *resolveVariable(const std::string &varName);
         /// @brief Create an alloca instruction in the entry block of the function. This is used for mutable variables etc.
         llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *theFunction,
                                                  llvm::StringRef varName);
-        void logError(const std::string &msg);
+        inline void logError(const std::string &msg);
     };
 } // namespace codegen
 

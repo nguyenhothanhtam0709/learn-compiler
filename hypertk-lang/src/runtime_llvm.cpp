@@ -53,8 +53,10 @@ namespace hypertk
 
     llvm::Value *RuntimeLLVM::genIR(const ast::Program &program)
     {
+        beginScope();
         for (const auto &stmt : program)
             visit(stmt);
+        endScope();
 
         return nullptr;
     }
@@ -166,12 +168,21 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitBlockStmt(
         const ast::statement::Block &stmt)
     {
+        beginScope();
+        endScope();
         return nullptr;
     }
 
     llvm::Value *RuntimeLLVM::visitVarDeclStmt(
         const ast::statement::VarDecl &stmt)
     {
+        ScopeTable &curScope = currentScope();
+        if (curScope.find(stmt.VarName.lexeme) != curScope.end())
+        {
+            logError("Already a variable with this name in this scope.");
+            return nullptr;
+        }
+
         llvm::Function *theFunction = Builder_->GetInsertBlock()->getParent();
 
         llvm::Value *initializer = nullptr;
@@ -180,44 +191,14 @@ namespace hypertk
                 return nullptr;
 
         llvm::AllocaInst *alloca_ = createEntryBlockAlloca(theFunction, stmt.VarName.lexeme);
+        curScope[stmt.VarName.lexeme] = alloca_;
         if (initializer)
             Builder_->CreateStore(initializer, alloca_);
 
-        return nullptr;
+        return alloca_;
     }
 
     llvm::Value *RuntimeLLVM::visitFunctionStmt(
-        const ast::statement::Function &stmt)
-    {
-        llvm::Function *theFunction = genFunctionPrototype(stmt);
-        if (!theFunction)
-            return nullptr;
-
-        return genFunctionBody(stmt, theFunction);
-    }
-
-    llvm::Value *RuntimeLLVM::visitBinOpDefStmt(
-        const ast::statement::BinOpDef &stmt)
-    {
-        llvm::Function *theFunction = genFunctionPrototype(stmt);
-        if (!theFunction)
-            return nullptr;
-
-        return genFunctionBody(stmt, theFunction);
-    }
-
-    llvm::Value *RuntimeLLVM::visitUnaryOpDefStmt(
-        const ast::statement::UnaryOpDef &stmt)
-    {
-        llvm::Function *theFunction = genFunctionPrototype(stmt);
-        if (!theFunction)
-            return nullptr;
-
-        return genFunctionBody(stmt, theFunction);
-    }
-
-    /** @brief Gen llvm ir for function prototype */
-    llvm::Function *RuntimeLLVM::genFunctionPrototype(
         const ast::statement::Function &stmt)
     {
         llvm::Function *theFunction = TheModule_->getFunction(stmt.Name.lexeme);
@@ -236,21 +217,17 @@ namespace hypertk
         for (auto &arg : theFunction->args())
             arg.setName(stmt.Params[idx++].lexeme);
 
-        return theFunction;
-    }
-
-    /** @brief Gen llvm ir for function body */
-    llvm::Function *RuntimeLLVM::genFunctionBody(const ast::statement::Function &stmt,
-                                                 llvm::Function *theFunction)
-    {
         // Create a new basic block to start insertion into.
         // Basic blocks in LLVM are an important part of functions that define the Control Flow Graph.
         llvm::BasicBlock *bB = llvm::BasicBlock::Create(*TheContext_, "entry", theFunction);
         // tells the builder that new instructions should be inserted into the end of the new basic block.
         Builder_->SetInsertPoint(bB);
 
+        beginScope();
+
         // Record the function arguments in the NamedValues map.
-        NamedValues_.clear();
+        // NamedValues_.clear();
+        auto &curScope = currentScope();
         for (auto &arg : theFunction->args())
         {
             // Create an alloca for this variable
@@ -260,7 +237,8 @@ namespace hypertk
             Builder_->CreateStore(&arg, alloca_);
 
             // Add arguments to variable symbol table
-            NamedValues_[std::string(arg.getName())] = alloca_;
+            // NamedValues_[std::string(arg.getName())] = alloca_;
+            curScope[std::string(arg.getName())] = alloca_;
         }
 
         for (const auto &fStmt : stmt.Body)
@@ -276,6 +254,8 @@ namespace hypertk
                 Builder_->CreateRet(llvm::ConstantFP::get(*TheContext_, llvm::APFloat(0.0)));
             }
         }
+
+        endScope();
 
         std::string errMsg;
         llvm::raw_string_ostream errStream(errMsg);
@@ -294,6 +274,18 @@ namespace hypertk
 #endif
 
         return theFunction;
+    }
+
+    llvm::Value *RuntimeLLVM::visitBinOpDefStmt(
+        const ast::statement::BinOpDef &stmt)
+    {
+        return visitFunctionStmt(stmt);
+    }
+
+    llvm::Value *RuntimeLLVM::visitUnaryOpDefStmt(
+        const ast::statement::UnaryOpDef &stmt)
+    {
+        return visitFunctionStmt(stmt);
     }
 
     llvm::Value *RuntimeLLVM::visitExpressionStmt(
@@ -398,26 +390,37 @@ namespace hypertk
         // Start insertion in loopBB
         Builder_->SetInsertPoint(loopBB);
 
+        beginScope();
         // Within the loop, the variable is defined equal to the PHI node.  If it
         // shadows an existing variable, we have to restore it, so save it now.
-        llvm::AllocaInst *oldVal = NamedValues_[stmt.VarName.lexeme];
-        NamedValues_[stmt.VarName.lexeme] = alloca_;
+        // llvm::AllocaInst *oldVal = NamedValues_[stmt.VarName.lexeme];
+        // NamedValues_[stmt.VarName.lexeme] = alloca_;
+        currentScope()[stmt.VarName.lexeme] = alloca_;
 
         // Emit the body of the loop.  This, like any other expr, can change the
         // current BB.  Note that we ignore the value computed by the body, but don't
         // allow an error.
         if (!visit(stmt.Body))
+        {
+            endScope();
             return nullptr;
+        }
 
         // Emit the step values.
         llvm::Value *stepVal = visit(stmt.Step);
         if (!stepVal)
+        {
+            endScope();
             return nullptr;
+        }
 
         // Compute the end condition.
         llvm::Value *endCond = visit(stmt.End);
         if (!endCond)
+        {
+            endScope();
             return nullptr;
+        }
 
         // Reload, increment and restore the alloca. This handles the case where
         // the body of the loop mutates the variable.
@@ -439,11 +442,12 @@ namespace hypertk
         // any new code will be inserted in afterBB;
         Builder_->SetInsertPoint(afterBB);
 
-        // Restore the unshadowed variable.
-        if (oldVal)
-            NamedValues_[stmt.VarName.lexeme] = oldVal;
-        else
-            NamedValues_.erase(stmt.VarName.lexeme);
+        // // Restore the unshadowed variable.
+        // if (oldVal)
+        //     NamedValues_[stmt.VarName.lexeme] = oldVal;
+        // else
+        //     NamedValues_.erase(stmt.VarName.lexeme);
+        endScope();
 
         return nullptr;
     }
@@ -459,17 +463,22 @@ namespace hypertk
     llvm::Value *RuntimeLLVM::visitVariableExpr(
         const ast::expression::Variable &expr)
     {
-        llvm::AllocaInst *a = NamedValues_[expr.Name.lexeme];
-        if (!a)
+        // llvm::AllocaInst *a = NamedValues_[expr.Name.lexeme];
+        llvm::Value *v_ = resolveVariable(expr.Name.lexeme);
+        if (!v_)
         {
             logError("Unknown variable name");
             return nullptr;
         }
 
-        // Load value
-        return Builder_->CreateLoad(a->getAllocatedType(),
-                                    a,
-                                    expr.Name.lexeme.c_str());
+        if (llvm::AllocaInst *a_ = llvm::dyn_cast<llvm::AllocaInst>(v_))
+            // Load value
+            return Builder_->CreateLoad(a_->getAllocatedType(),
+                                        a_,
+                                        expr.Name.lexeme.c_str());
+
+        logError("Wrong type");
+        return nullptr;
     }
 
     llvm::Value *RuntimeLLVM::visitBinaryExpr(
@@ -488,7 +497,8 @@ namespace hypertk
             }
 
             auto LHSE = std::get_if<ast::expression::VariablePtr>(&expr.LHS);
-            llvm::Value *variable = NamedValues_[LHSE->get()->Name.lexeme];
+            // llvm::Value *variable = NamedValues_[LHSE->get()->Name.lexeme];
+            llvm::Value *variable = resolveVariable(LHSE->get()->Name.lexeme);
             if (!variable)
             {
                 logError("Unknown variable name.");
@@ -646,6 +656,20 @@ namespace hypertk
     }
     //<
 
+    __attribute__((always_inline)) inline void RuntimeLLVM::beginScope() { scopes_.emplace_back(); }
+    __attribute__((always_inline)) inline void RuntimeLLVM::endScope() { scopes_.pop_back(); }
+    __attribute__((always_inline)) inline ScopeTable &RuntimeLLVM::currentScope() { return scopes_.back(); }
+    llvm::Value *RuntimeLLVM::resolveVariable(const std::string &varName)
+    {
+        if (!scopes_.empty())
+            for (auto scope = scopes_.crbegin(); scope != scopes_.crend(); ++scope)
+            {
+                auto it = scope->find(varName);
+                if (it != scope->end())
+                    return it->second;
+            }
+        return nullptr;
+    }
     llvm::AllocaInst *RuntimeLLVM::createEntryBlockAlloca(
         llvm::Function *theFunction,
         llvm::StringRef varName)
@@ -656,7 +680,7 @@ namespace hypertk
                                  nullptr,
                                  varName);
     }
-    void RuntimeLLVM::logError(const std::string &msg)
+    __attribute__((always_inline)) inline void RuntimeLLVM::logError(const std::string &msg)
     {
         error::error(0, msg);
     }
