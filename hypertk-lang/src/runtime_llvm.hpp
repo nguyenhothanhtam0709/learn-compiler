@@ -25,6 +25,9 @@
 #include "llvm/Analysis/LoopAnalysisManager.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 #endif
+#ifndef ENABLE_BASIC_JIT_COMPILER
+#include "llvm/Target/TargetMachine.h"
+#endif
 
 namespace hypertk
 {
@@ -48,10 +51,15 @@ namespace hypertk
 #ifdef ENABLE_BASIC_JIT_COMPILER
         /** Eval the program */
         bool eval();
-        /** Enable JIT compiler */
+        /** Initialize JIT compiler */
         void initializeJIT();
+#else
+        /// @brief Initialize AOT compiler
+        bool initializeAOT();
 #endif
 #ifdef ENABLE_BUILTIN_FUNCTIONS
+        /// @brief Compile code to .o file
+        bool compileToObjectFile(const std::string &outfile);
         void declareBuiltInFunctions();
 #endif
 
@@ -63,6 +71,12 @@ namespace hypertk
         llvm::ExitOnError ExitOnErr;
 #ifdef ENABLE_BASIC_JIT_COMPILER
         std::unique_ptr<HyperTkJIT> TheJIT_ = nullptr;
+#else
+        /// @brief Format: `<arch><sub>-<vendor>-<sys>-<abi>`
+        /// @example x86_64-unknown-linux-gnu
+        const std::string TargetTriple_;
+        /// @brief Provide a complete machine description of the machine we’re targeting.
+        llvm::TargetMachine *TargetMachine_ = nullptr;
 #endif
 #ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
         /** @brief the function pass manager */

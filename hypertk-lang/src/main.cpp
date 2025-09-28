@@ -137,6 +137,9 @@ int main()
         hypertk::RuntimeLLVM runtime;
 #ifdef ENABLE_BASIC_JIT_COMPILER
         runtime.initializeJIT();
+#else
+        if (!runtime.initializeAOT())
+            return EXIT_FAILURE;
 #endif
 
         runtime.initializeModuleAndManagers();
@@ -160,6 +163,9 @@ int main()
 
 #ifdef ENABLE_BASIC_JIT_COMPILER
         runtime.eval();
+#else
+        if (!runtime.compileToObjectFile("output.o"))
+            return EXIT_FAILURE;
 #endif
     }
 

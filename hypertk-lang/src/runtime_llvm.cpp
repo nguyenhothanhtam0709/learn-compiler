@@ -20,9 +20,16 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/raw_ostream.h"
-#ifdef ENABLE_BASIC_JIT_COMPILER
 #include "llvm/Support/TargetSelect.h"
+#ifdef ENABLE_BASIC_JIT_COMPILER
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#else
+#include "llvm/TargetParser/Host.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/IR/LegacyPassManager.h"
 #endif
 #ifdef ENABLE_COMPILER_OPTIMIZATION_PASS
 #include "llvm/IR/PassManager.h"
@@ -43,6 +50,10 @@ namespace hypertk
     RuntimeLLVM::RuntimeLLVM()
         : ast::statement::Visitor<llvm::Value *>(),
           ast::expression::Visitor<llvm::Value *>()
+#ifndef ENABLE_BASIC_JIT_COMPILER
+          ,
+          TargetTriple_{llvm::sys::getDefaultTargetTriple()}
+#endif
     {
     }
 
@@ -68,6 +79,9 @@ namespace hypertk
         TheModule_ = std::make_unique<llvm::Module>("HyperTk Runtime", *TheContext_);
 #ifdef ENABLE_BASIC_JIT_COMPILER
         TheModule_->setDataLayout(TheJIT_->getDataLayout());
+#else
+        TheModule_->setDataLayout(TargetMachine_->createDataLayout());
+        TheModule_->setTargetTriple(TargetTriple_);
 #endif
 
         // Create a new builder for the module
@@ -147,6 +161,63 @@ namespace hypertk
 
         TheJIT_ = ExitOnErr(HyperTkJIT::Create());
     }
+
+#else
+    bool RuntimeLLVM::compileToObjectFile(const std::string &outfile)
+    {
+        std::error_code ec;
+        llvm::raw_fd_ostream dest(outfile, ec, llvm::sys::fs::OF_None);
+        if (ec)
+        {
+            llvm::errs() << "Could not open file: " << ec.message();
+            return false;
+        }
+
+        llvm::legacy::PassManager pass;
+        auto fileType = llvm::CodeGenFileType::ObjectFile;
+        if (TargetMachine_->addPassesToEmitFile(pass, dest, nullptr, fileType))
+        {
+            llvm::errs() << "TargetMachine can't emit a file of this type";
+            return false;
+        }
+
+        pass.run(*TheModule_);
+        dest.flush();
+        return true;
+    }
+
+    bool RuntimeLLVM::initializeAOT()
+    {
+        llvm::InitializeAllTargetInfos();
+        llvm::InitializeAllTargets();
+        llvm::InitializeAllTargetMCs();
+        llvm::InitializeAllAsmParsers();
+        llvm::InitializeAllAsmPrinters();
+
+        std::string error_;
+        auto target_ = llvm::TargetRegistry::lookupTarget(TargetTriple_, error_);
+        // Print an error and exit if we couldn't find the requested target.
+        // This generally occurs if we've forgotten to initialise the
+        // TargetRegistry or we have a bogus target triple.
+        if (!target_)
+        {
+            llvm::errs() << error_;
+            return false;
+        }
+
+        auto cpu_ = "generic";
+        auto features_ = "";
+
+        llvm::TargetOptions opt;
+        TargetMachine_ = target_->createTargetMachine(TargetTriple_,
+                                                      cpu_,
+                                                      features_,
+                                                      opt,
+                                                      llvm::Reloc::PIC_);
+
+        return true;
+    }
+
 #endif
 
 #ifdef ENABLE_BUILTIN_FUNCTIONS
