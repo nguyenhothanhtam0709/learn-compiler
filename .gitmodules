@@ -1,3 +1,6 @@
 [submodule "crafting-interpreter"]
 	path = crafting-interpreter
 	url = https://@github.com/nguyenhothanhtam0709/crafting-interpreter.git
+[submodule "nand2tetris"]
+	path = nand2tetris
+	url = https://github.com/nguyenhothanhtam0709/nand2tetris.git
