@@ -4,3 +4,6 @@
 [submodule "nand2tetris"]
 	path = nand2tetris
 	url = https://github.com/nguyenhothanhtam0709/nand2tetris.git
+[submodule "lc-3-virtual-machine"]
+	path = lc-3-virtual-machine
+	url = https://github.com/nguyenhothanhtam0709/lc-3-virtual-machine.git
