@@ -7,3 +7,6 @@
 [submodule "lc-3-virtual-machine"]
 	path = lc-3-virtual-machine
 	url = https://github.com/nguyenhothanhtam0709/lc-3-virtual-machine.git
+[submodule "simple-interpreter-python"]
+	path = simple-interpreter-python
+	url = https://github.com/nguyenhothanhtam0709/simple-interpreter-python.git
