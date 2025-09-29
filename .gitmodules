@@ -1,0 +1,3 @@
+[submodule "crafting-interpreter"]
+	path = crafting-interpreter
+	url = https://@github.com/nguyenhothanhtam0709/crafting-interpreter.git
