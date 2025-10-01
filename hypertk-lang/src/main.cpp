@@ -169,21 +169,5 @@ int main()
 #endif
     }
 
-    // lexer::Lexer l{src};
-    // token::Token token = l.nextToken();
-    // while (token.type != token::TokenType::END_OF_FILE && token.type != token::TokenType::ERROR)
-    // {
-    //     std::cout << "Current token: " << token.lexeme << "\n";
-    //     token = l.nextToken();
-    // }
-
-    // std::cout << "Current token: " << src.at(src.length() - 1) << "\n";
-
-    // std::unique_ptr<ast::statement::Expression> exprStmt = std::make_unique<ast::statement::Expression>(
-    //     std::make_unique<ast::expression::Number>(10));
-
-    // AstVisitor visitor;
-    // visitor.visit(std::move(exprStmt));
-
     return EXIT_SUCCESS;
 }
