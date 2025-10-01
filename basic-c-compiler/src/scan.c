@@ -6,8 +6,8 @@
 #include "data.h"
 #include "decl.h"
 
-// Return the position of character c
-// in string s, or -1 if c not found
+/// @brief Return the position of character c
+/// in string s, or -1 if c not found
 static int chrpos(char *s, int c)
 {
     char *p;
@@ -16,7 +16,7 @@ static int chrpos(char *s, int c)
     return p ? p - s : -1;
 }
 
-// Get the next character from the input file
+/// @brief Get the next character from the input file
 static int next(void)
 {
     int c;
@@ -34,15 +34,15 @@ static int next(void)
     return c;
 }
 
-// Put back an unwanted character
+/// @brief Put back an unwanted character
 static void putback(int c)
 {
     Putback = c;
 }
 
-// Skip past input that we don't need to deal with,
-// i.e. whitespace, newlines. Return the first
-// character we do need to deal with.
+/// @brief Skip past input that we don't need to deal with,
+/// i.e. whitespace, newlines. Return the first
+/// character we do need to deal with.
 static int skip(void)
 {
     int c;
@@ -53,8 +53,8 @@ static int skip(void)
     return c;
 }
 
-// Scan and return an integer literal
-// value from the input file.
+/// @brief Scan and return an integer literal
+/// value from the input file.
 static int scanint(int c)
 {
     int k, val = 0;
@@ -71,8 +71,8 @@ static int scanint(int c)
     return val;
 }
 
-// Scan and return the next token found in the input.
-// Return 1 if token valid, 0 if no tokens left.
+/// @brief Scan and return the next token found in the input.
+/// Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t)
 {
     int c;
@@ -85,7 +85,8 @@ int scan(struct token *t)
     switch (c)
     {
     case EOF:
-        return (0);
+        t->token = T_EOF;
+        return 0;
     case '+':
         t->token = T_PLUS;
         break;
