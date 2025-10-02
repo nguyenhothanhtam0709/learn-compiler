@@ -1,3 +1,7 @@
+///
+/// Parsing of expressions with Pratt parsing
+///
+
 #include <stdlib.h>
 
 #include "defs.h"
@@ -26,9 +30,9 @@ static struct ASTnode *primary(void)
 }
 
 /// @brief Convert a token into an AST operation.
-int arithop(int tok)
+int arithop(int tokentype)
 {
-    switch (tok)
+    switch (tokentype)
     {
     case T_PLUS:
         return A_ADD;
@@ -40,34 +44,72 @@ int arithop(int tok)
         return A_DIVIDE;
     default:
         fprintf(stderr, "unknown token in arithop() on line %d\n", Line);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
-/// @brief Return an AST tree whose root is a binary operator
-struct ASTnode *binexpr(void)
+/// @brief Operator precedence for each token
+static int OpPrec[] = {
+    [T_EOF] = 0,
+    [T_PLUS] = 10,
+    [T_MINUS] = 10,
+    [T_STAR] = 20,
+    [T_SLASH] = 20,
+    [T_INTLIT] = 0};
+
+/// @brief Check that we have a binary operator and
+/// return its precedence.
+static int op_precedence(int tokentype)
 {
-    struct ASTnode *n, *left, *right;
-    int nodetype;
+    int prec = OpPrec[tokentype];
+    if (prec == 0)
+    {
+        fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
+        exit(EXIT_FAILURE);
+    }
+
+    return prec;
+}
+
+/// @brief Return an AST tree whose root is a binary operator.
+/// Parameter ptp is the previous token's precedence.
+struct ASTnode *binexpr(int ptp)
+{
+    struct ASTnode *left, *right;
+    int tokentype;
 
     // Get the integer literal on the left.
     // Fetch the next token at the same time.
     left = primary();
 
     // If no tokens left, return just the left node
-    if (Token.token == T_EOF)
+    tokentype = Token.token;
+    if (tokentype == T_EOF)
         return left;
 
-    // Convert the token into a node type
-    nodetype = arithop(Token.token);
+    // While the precedence of this token is
+    // more than that of the previous token precedence
+    while (op_precedence(tokentype) > ptp)
+    {
+        // Fetch in the next integer literal
+        scan(&Token);
 
-    // Get the next token in
-    scan(&Token);
+        // Recursively call binexpr() with the
+        // precedence of our token to build a sub-tree
+        right = binexpr(OpPrec[tokentype]);
 
-    // Recursively get the right-hand tree
-    right = binexpr();
+        // Join that sub-tree with ours. Convert the token
+        // into an AST operation at the same time.
+        left = mkastnode(arithop(tokentype), left, right, 0);
 
-    // Now build a tree with both sub-trees
-    n = mkastnode(nodetype, left, right, 0);
-    return n;
+        // Update the details of the current token.
+        // If no tokens left, return just the left node
+        tokentype = Token.token;
+        if (tokentype == T_EOF)
+            return left;
+    }
+
+    // Return the tree we have when the precedence
+    // is the same or lower
+    return left;
 }

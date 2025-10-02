@@ -4,6 +4,7 @@ CFLAGS = -std=c17 -Wall -Wextra -O2
 # Project settings
 TARGET = main
 SRC    = $(wildcard src/*.c)
+SRC    := $(filter-out src/expr2.c, $(SRC))
 OBJ    = $(SRC:src/.c=build/.o)
 
 # Default rule
@@ -19,4 +20,4 @@ $(TARGET): $(OBJ)
 
 # Clean build files
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(TARGET)
