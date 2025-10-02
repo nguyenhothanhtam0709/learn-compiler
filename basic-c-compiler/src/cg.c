@@ -54,27 +54,49 @@ static void free_register(int reg)
 /// @brief Print out the assembly preamble
 void cgpreamble()
 {
+    /// @note Some note about below x86-64 asm:
+    ///
+    /// The compiler often saves all arguments into the stack frame right at the start,
+    /// to make them accessible like local variables. Then, later, when it needs the value again,
+    /// it reloads it from the stack rather than reusing the incoming register. That why
+    /// we see the instruction
+    /// ```asm
+    /// movl    %edi, -4(%rbp)     # save printint's 1st argument into stack (or allocate local variable x)
+    /// movl    -4(%rbp), %eax     # reload x from stack into eax
+    /// movl    %eax, %esi         # copy eax into esi (printf's 2nd argument)
+    /// ```
+    /// rather than just do `movl %edi, %esi` (move 1st argument of printint directly into esi).
+    ///
+    /// Although the later would be shorter and faster than above 3-instruction sequence. But
+    /// the compilers sometimes choose the “safe and uniform” approach:
+    ///     - Always spill function arguments into the stack frame.
+    ///     - Later, generate loads from memory when needed.
+    ///     - This makes code generation simpler, especially in unoptimized builds (`-O0`).
+    /// At higher optimization levels (`-O2`, `-O3`), GCC or Clang will optimize away
+    /// the unnecessary memory traffic and just emit `movl %edi, %esi`.
+    /// 
+
     freeall_registers();
     fputs(
         "\t.text\n"                 // `.text`                  → begin code section
         ".LC0:\n"                   // `.LC0`                   → label for string literal
-        "\t.string\t\"%d\\n\"\n"    // `.string "%d\n"`         → define format string
+        "\t.string\t\"%d\\n\"\n"    // `.string "%d\n"`         → define string constant "%d\n"
         "printint:\n"               // `printint:`              → start of function printint
         "\tpushq\t%rbp\n"           // `pushq %rbp`             → save old base pointer
         "\tmovq\t%rsp, %rbp\n"      // `movq %rsp, %rbp`        → establish new stack frame
         "\tsubq\t$16, %rsp\n"       // `subq $16, %rsp`         → allocate 16 bytes of stack space
-        "\tmovl\t%edi, -4(%rbp)\n"  // `movl %edi, -4(%rbp)`    → save int argument to local var
-        "\tmovl\t-4(%rbp), %eax\n"  // `movl -4(%rbp), %eax`    → load local var into eax
-        "\tmovl\t%eax, %esi\n"      // `movl %eax, %esi`        → move value into 2nd arg for printf
-        "\tleaq	.LC0(%rip), %rdi\n" // `leaq .LC0(%rip), %rdi`  → load address of format string
-        "\tmovl	$0, %eax\n"         // `movl $0, %eax`          → set varargs register count to 0
-        "\tcall	printf@PLT\n"       // `call printf@PLT`        → call printf
+        "\tmovl\t%edi, -4(%rbp)\n"  // `movl %edi, -4(%rbp)`    → save 1st arg argument into local var (int x)
+        "\tmovl\t-4(%rbp), %eax\n"  // `movl -4(%rbp), %eax`    → load x into eax
+        "\tmovl\t%eax, %esi\n"      // `movl %eax, %esi`        → place x into %esi (2nd printf argument)
+        "\tleaq	.LC0(%rip), %rdi\n" // `leaq .LC0(%rip), %rdi`  → load address of "%d\n" into rdi (1st arg)
+        "\tmovl	$0, %eax\n"         // `movl $0, %eax`          → clear eax (needed for varargs call)
+        "\tcall	printf@PLT\n"       // `call printf@PLT`        → call printf("%d\n", x), `@PLT` = Procedure Linkage Table entry
         "\tnop\n"                   // `nop`                    → no operation
         "\tleave\n"                 // `leave`                  → restore base pointer & stack
         "\tret\n"                   // `ret`                    → return to caller
         "\n"
-        "\t.globl\tmain\n"           // `.globl main`           → export main symbol
-        "\t.type\tmain, @function\n" // `.type main, @function` → declare main as function
+        "\t.globl\tmain\n"           // `.globl main`           → export main symbol: declare main as global
+        "\t.type\tmain, @function\n" // `.type main, @function` → mark symbol type: declare main as function
         "main:\n"                    // `main:`                 → start of function main
         "\tpushq\t%rbp\n"            // `pushq %rbp`            → save old base pointer
         "\tmovq	%rsp, %rbp\n",       // `movq %rsp, %rbp`       → establish new stack frame
