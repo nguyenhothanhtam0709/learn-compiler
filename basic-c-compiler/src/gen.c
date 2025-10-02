@@ -6,7 +6,7 @@
 
 /// @brief Given an AST, generate
 /// assembly code recursively
-static int genAST(struct ASTnode *n)
+int genAST(struct ASTnode *n)
 {
     /// @note `genAST()`'s code passes around register identifiers.
     /// `genAST()` itself returns the identity of the register that holds the final value of the tree at this point.
@@ -39,12 +39,22 @@ static int genAST(struct ASTnode *n)
     }
 }
 
-void generatecode(struct ASTnode *n)
+void genpreamble()
 {
-    int reg;
+    cgpreamble();
+}
 
-    cgpreamble(); // leading asm code (the preamble)
-    reg = genAST(n);
-    cgprintint(reg); // Print the register with the result as an int
-    cgpostamble();   //  trailing asm code (the postamble)
+void genpostamble()
+{
+    cgpostamble();
+}
+
+void genfreeregs()
+{
+    freeall_registers();
+}
+
+void genprintint(int reg)
+{
+    cgprintint(reg);
 }

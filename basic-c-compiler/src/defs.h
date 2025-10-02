@@ -1,6 +1,9 @@
 #ifndef C_DEFS_H
 #define C_DEFS_H
 
+/// @brief Length of symbols in input
+#define TEXTLEN 512
+
 /// @brief Tokens
 enum
 {
@@ -10,6 +13,8 @@ enum
     T_STAR,   // `*`
     T_SLASH,  // `/`
     T_INTLIT, // Integer literal
+    T_SEMI,   // `;`
+    T_PRINT,  // `print`
 };
 
 struct token

@@ -12,11 +12,15 @@ struct ASTnode *mkastunary(int op, struct ASTnode *left, int intvalue);
 
 struct ASTnode *binexpr(int ptp);
 
-int interpretAST(struct ASTnode *n);
-void generatecode(struct ASTnode *n);
+void statements(void);
+
+int genAST(struct ASTnode *n);
+void genpreamble();
+void genpostamble();
+void genfreeregs();
+void genprintint(int reg);
 
 void freeall_registers(void);
-
 void cgpreamble();
 void cgpostamble();
 int cgload(int value);
@@ -25,5 +29,8 @@ int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 void cgprintint(int r);
+
+void match(int t, char *what);
+void semi(void);
 
 #endif
