@@ -74,7 +74,7 @@ void cgpreamble()
     ///     - This makes code generation simpler, especially in unoptimized builds (`-O0`).
     /// At higher optimization levels (`-O2`, `-O3`), GCC or Clang will optimize away
     /// the unnecessary memory traffic and just emit `movl %edi, %esi`.
-    /// 
+    ///
 
     freeall_registers();
     fputs(
@@ -115,13 +115,36 @@ void cgpostamble()
 
 /// @brief Load an integer literal value into a register.
 /// Return the number of the register
-int cgload(int value)
+int cgloadint(int value)
 {
+    /// @brief r = value
+    ///
+    /// @note `movq $value, %r` → Load immediate value `value` to register `r`
+
     // Get a new register
     int r = alloc_register();
 
     // Print out the code to initialise it
     fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
+    return (r);
+}
+
+/// @brief Load a value from a variable into a register.
+/// Return the number of the register
+int cgloadglob(char *identifier)
+{
+    /// @brief r = value of identifier
+    ///
+    /// @note `movq identifier(%rip), %r8` → Take the memory contents at symbol `identifier` (relative to instruction pointer)
+    ///                                     and load it to register `r`.
+    /// `%rip`-relative addressing is how x86-64 does position-independent code (PIC).
+    /// `identifier(%rip)` means "the 64-bit value stored at the address of `identifier`".
+
+    // Get a new register
+    int r = alloc_register();
+
+    // Print out the code to initialise it
+    fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
     return r;
 }
 
@@ -208,6 +231,35 @@ void cgprintint(int r)
     fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
     fprintf(Outfile, "\tcall\tprintint\n");
     free_register(r);
+}
+
+/// @brief Store a register's value into a variable
+int cgstorglob(int r, char *identifier)
+{
+    /// @brief identifier = r
+    ///
+    /// @note `movq %r, identifier(%rip)` → Take the content of register `r` and store
+    ///                                    it into the memory location of global variable `identifier`.
+
+    fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
+    return (r);
+}
+
+/// @brief Generate a global symbol
+void cgglobsym(char *sym)
+{
+    /// @note `.comm sym, 8, 8` → Tells the assembler/linker to reserve uninitialized storage
+    ///                           (like a global variable in C without an initializer).
+    ///
+    /// `x` → the symbol name (global variable name).
+    /// `8` → allocate 8 bytes (size of a 64-bit integer).
+    /// `8` → align it on an 8-byte boundary.
+    ///
+    /// This is exactly what GCC/Clang do for code like `long x;`.
+    ///
+    /// @details `.comm symbol, length, alignment`
+
+    fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
 }
 
 // #endregion

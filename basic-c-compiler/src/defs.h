@@ -3,6 +3,8 @@
 
 /// @brief Length of symbols in input
 #define TEXTLEN 512
+/// @brief Number of symbol table entries
+#define NSYMBOLS 1024
 
 /// @brief Tokens
 enum
@@ -14,7 +16,12 @@ enum
     T_SLASH,  // `/`
     T_INTLIT, // Integer literal
     T_SEMI,   // `;`
-    T_PRINT,  // `print`
+    T_EQUALS,
+    T_IDENT,
+    // #region Keywords
+    T_PRINT, // `print`
+    T_INT,
+    // #endregion
 };
 
 struct token
@@ -31,6 +38,9 @@ enum
     A_MULTIPLY,
     A_DIVIDE,
     A_INTLIT, // Integer literal
+    A_IDENT,
+    A_LVIDENT, // lvalue identifier
+    A_ASSIGN
 };
 
 struct ASTnode
@@ -38,7 +48,18 @@ struct ASTnode
     int op; // "Operation" to be performed on this tree
     struct ASTnode *left;
     struct ASTnode *right;
-    int intvalue; // For A_INTLIT, the integer value
+    union
+    {
+        int intvalue; // For A_INTLIT, the integer value
+        int id;       // For A_IDENT, the symbol slot number
+    } v;
+};
+
+/// @brief Symbol table entry structure
+struct symtable
+{
+    /// @brief Name of a symbol
+    char *name;
 };
 
 #endif
