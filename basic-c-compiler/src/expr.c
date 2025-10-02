@@ -12,7 +12,7 @@
 /// AST node representing it.
 static struct ASTnode *primary(void)
 {
-    struct ASTnode *n;
+    struct ASTnode *n = NULL;
     int id;
 
     switch (Token.token)
@@ -41,33 +41,30 @@ static struct ASTnode *primary(void)
     return n;
 }
 
-/// @brief Convert a token into an AST operation.
+/// @brief Convert a binary operator token into an AST operation.
+/// We rely on a 1:1 mapping from token to AST operation.
 int arithop(int tokentype)
 {
-    switch (tokentype)
-    {
-    case T_PLUS:
-        return A_ADD;
-    case T_MINUS:
-        return A_SUBTRACT;
-    case T_STAR:
-        return A_MULTIPLY;
-    case T_SLASH:
-        return A_DIVIDE;
-    default:
-        fprintf(stderr, "unknown token in arithop() on line %d\n", Line);
-        exit(EXIT_FAILURE);
-    }
+    if (tokentype > T_EOF && tokentype < T_INTLIT)
+        return tokentype;
+    fatald("Syntax error, token", tokentype);
 }
 
-/// @brief Operator precedence for each token
+/// @brief Operator precedence for each token. Must
+/// match up with the order of tokens in defs.h
 static int OpPrec[] = {
     [T_EOF] = 0,
     [T_PLUS] = 10,
     [T_MINUS] = 10,
     [T_STAR] = 20,
     [T_SLASH] = 20,
-    [T_INTLIT] = 0};
+    [T_EQ] = 30,
+    [T_NE] = 30,
+    [T_LT] = 40,
+    [T_GT] = 40,
+    [T_LE] = 40,
+    [T_GE] = 40,
+};
 
 /// @brief Check that we have a binary operator and
 /// return its precedence.

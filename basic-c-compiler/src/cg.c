@@ -12,6 +12,8 @@
 static int freereg[REG_NUM];
 /// @brief List of registers used by compiler
 static char *reglist[REG_NUM] = {"%r8", "%r9", "%r10", "%r11"};
+/// @brief List of registers that are lower 8-bit version of each register of `reglist`
+static char *breglist[REG_NUM] = {"%r8b", "%r9b", "%r10b", "%r11b"};
 
 /// @brief Set all registers as available
 void freeall_registers(void)
@@ -261,5 +263,42 @@ void cgglobsym(char *sym)
 
     fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
 }
+
+/// @brief Compare two registers.
+static int cgcompare(int r1, int r2, char *how)
+{
+    /// @note
+    /// `cmpq %r2, %r1`               → This does `%r8 - %r9` and sets flags (ZF, SF, OF, CF) accordingly.
+    /// `(how) (breglist[r2])`        → Write 0 or 1 to `breglist[r2]` (8-bit version of r2 register) based on `how` instruction
+    ///                                 Some `how` instructions:
+    ///                                     + `sete`    - set if equal, ZF=1
+    ///                                     + `setne`   - set if not equal, ZF=0
+    ///                                     + `setl`    - signed less than, SF != OF
+    ///                                     + `setle`   - signed less or equal, ZF=1 or SF != OF
+    ///                                     + `setg`    - signed greater than, ZF=0 and SF=OF
+    ///                                     + `setge`   - signed greater or equal, SF=OF
+    ///                                 Because x86 conditional set instructions (sete, setne, setl, etc.) only work on 8-bit registers,
+    ///                                 So, we must use 8-bit version of normal register (`breglist[r2]`).
+    /// `andq $255, r2`               → This clears the upper 56 bits of `r2`, leaving a clean 0 or 1.
+    ///                                 Now `r2` holds the boolean result.
+
+    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(Outfile, "\t%s\t%s\n", how, breglist[r2]);
+    fprintf(Outfile, "\tandq\t$255,%s\n", reglist[r2]);
+    free_register(r1);
+    return r2;
+}
+
+int cgequal(int r1, int r2) { return cgcompare(r1, r2, "sete"); }
+
+int cgnotequal(int r1, int r2) { return cgcompare(r1, r2, "setne"); }
+
+int cglessthan(int r1, int r2) { return cgcompare(r1, r2, "setl"); }
+
+int cggreaterthan(int r1, int r2) { return cgcompare(r1, r2, "setg"); }
+
+int cglessequal(int r1, int r2) { return cgcompare(r1, r2, "setle"); }
+
+int cggreaterequal(int r1, int r2) { return cgcompare(r1, r2, "setge"); }
 
 // #endregion
