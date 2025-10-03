@@ -24,9 +24,15 @@ enum
     T_SEMI,   // `;`
     T_ASSIGN, // `=`
     T_IDENT,
+    T_LBRACE,
+    T_RBRACE,
+    T_LPAREN,
+    T_RPAREN,
     // #region Keywords
     T_PRINT, // `print`
     T_INT,
+    T_IF,
+    T_ELSE,
     // #endregion
 };
 
@@ -52,13 +58,17 @@ enum
     A_INTLIT, // Integer literal
     A_IDENT,
     A_LVIDENT, // lvalue identifier
-    A_ASSIGN
+    A_ASSIGN,
+    A_PRINT,
+    A_GLUE,
+    A_IF
 };
 
 struct ASTnode
 {
     int op; // "Operation" to be performed on this tree
     struct ASTnode *left;
+    struct ASTnode *mid;
     struct ASTnode *right;
     union
     {
@@ -66,6 +76,10 @@ struct ASTnode
         int id;       // For A_IDENT, the symbol slot number
     } v;
 };
+
+/// @brief Use NOREG when the AST generation
+/// functions have no register to return
+#define NOREG -1
 
 /// @brief Symbol table entry structure
 struct symtable

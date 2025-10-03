@@ -109,7 +109,7 @@ struct ASTnode *binexpr(int ptp)
 
         // Join that sub-tree with ours. Convert the token
         // into an AST operation at the same time.
-        left = mkastnode(arithop(tokentype), left, right, 0);
+        left = mkastnode(arithop(tokentype), left, NULL, right, 0);
 
         // Update the details of the current token.
         // If we hit a semicolon, return just the left node

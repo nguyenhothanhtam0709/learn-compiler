@@ -45,6 +45,8 @@ char *tokstr[] = {"+", "-", "*", "/", "intlit"};
 /// file and call scanfile() to scan the tokens in it.
 int main(int argc, char *argv[])
 {
+    struct ASTnode *tree;
+
     if (argc != 2)
         usage(argv[0]);
 
@@ -63,10 +65,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    scan(&Token);   // Get the first token from the input
-    genpreamble();  // Output the preamble
-    statements();   // Parse the statements in the input
-    genpostamble(); // Output the postamble
+    scan(&Token);                // Get the first token from the input
+    genpreamble();               // Output the preamble
+    tree = compound_statement(); // Parse the compound statements in the input
+    genAST(tree, NOREG, 0);      // Generate the assembly code for ast
+    genpostamble();              // Output the postamble
 
     fclose(Infile);
     fclose(Outfile);

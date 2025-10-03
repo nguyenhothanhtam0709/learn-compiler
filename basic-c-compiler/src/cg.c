@@ -2,7 +2,6 @@
 /// x64-64 code generator
 ///
 
-
 #include <stdlib.h>
 
 #include "defs.h"
@@ -269,41 +268,95 @@ void cgglobsym(char *sym)
     fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
 }
 
-/// @brief Compare two registers.
-static int cgcompare(int r1, int r2, char *how)
+// List of comparison instruction
+static char *cmplist[] = {
+    "sete",  // A_EQ
+    "setne", // A_NE
+    "setl",  // A_LT
+    "setg",  // A_GT
+    "setle", // A_LE
+    "setge", // A_GE
+};
+
+/// @brief Compare two registers and set if true.
+int cgcompare_and_set(int ASTop, int r1, int r2)
 {
+    // Check the range of the AST operation
+    if (ASTop < A_EQ || ASTop > A_GE)
+        fatal("Bad ASTop in cgcompare_and_set()");
+
     /// @note
-    /// `cmpq %r2, %r1`               → This does `%r8 - %r9` and sets flags (ZF, SF, OF, CF) accordingly.
-    /// `(how) (breglist[r2])`        → Write 0 or 1 to `breglist[r2]` (8-bit version of r2 register) based on `how` instruction
-    ///                                 Some `how` instructions:
-    ///                                     + `sete`    - set if equal, ZF=1
-    ///                                     + `setne`   - set if not equal, ZF=0
-    ///                                     + `setl`    - signed less than, SF != OF
-    ///                                     + `setle`   - signed less or equal, ZF=1 or SF != OF
-    ///                                     + `setg`    - signed greater than, ZF=0 and SF=OF
-    ///                                     + `setge`   - signed greater or equal, SF=OF
-    ///                                 Because x86 conditional set instructions (sete, setne, setl, etc.) only work on 8-bit registers,
-    ///                                 So, we must use 8-bit version of normal register (`breglist[r2]`).
-    /// `andq $255, r2`               → This clears the upper 56 bits of `r2`, leaving a clean 0 or 1.
-    ///                                 Now `r2` holds the boolean result.
+    /// `cmpq %r2, %r1`                 → This does `%r1 - %r2` and sets flags (ZF, SF, OF, CF) accordingly.
+    /// `(how) (breglist[r2])`          → A conditional set instruction (`setcc`) that writes 1 (true) or 0 (false)
+    ///                                     to `breglist[r2]` (8-bit version of r2 register), based on the flags.
+    ///                                     Some `how` instructions:
+    ///                                         + `sete`    - set if equal (ZF = 1)
+    ///                                         + `setne`   - set if not equal (ZF = 0)
+    ///                                         + `setl`    - set if signed less (SF != OF)
+    ///                                         + `setle`   - set if signed less or equal (ZF = 1 or SF != OF)
+    ///                                         + `setg`    - set if signed greater (ZF = 0 and SF == OF)
+    ///                                         + `setge`   - sset if signed greater or equal (SF == OF)
+    ///                                     Because x86 conditional set instructions (sete, setne, setl, etc.) only work on 8-bit registers,
+    ///                                     So, we must use 8-bit version of normal register (`breglist[r2]`).
+    /// `movzbq %(breglist[r2]), %r2`   → Zero-extends the 8-bit boolean result in `%(breglist[r2])` (0 or 1)
+    ///                                   into the full 64-bit register `r2`, clearing the upper 56 bits.
 
     fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
-    fprintf(Outfile, "\t%s\t%s\n", how, breglist[r2]);
-    fprintf(Outfile, "\tandq\t$255,%s\n", reglist[r2]);
+    fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
+    fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
     free_register(r1);
     return r2;
 }
 
-int cgequal(int r1, int r2) { return cgcompare(r1, r2, "sete"); }
+/// @brief Generate a label
+void cglabel(int l)
+{
+    /// @note `L<label>:` - Emit an assembly label definition
 
-int cgnotequal(int r1, int r2) { return cgcompare(r1, r2, "setne"); }
+    fprintf(Outfile, "L%d:\n", l);
+}
 
-int cglessthan(int r1, int r2) { return cgcompare(r1, r2, "setl"); }
+/// @brief Generate a jump to a label
+void cgjump(int l)
+{
+    /// @note `jmp L<label>` - Emit an unconditional jump to a specified label.
 
-int cggreaterthan(int r1, int r2) { return cgcompare(r1, r2, "setg"); }
+    fprintf(Outfile, "\tjmp\tL%d\n", l);
+}
 
-int cglessequal(int r1, int r2) { return cgcompare(r1, r2, "setle"); }
+/// @brief List of inverted jump instructions
+static char *invcmplist[] = {
+    "jne", // A_EQ
+    "je",  // A_NE
+    "jge", // A_LT
+    "jle", // A_GT
+    "jg",  // A_LE
+    "jl",  // A_GE
+};
 
-int cggreaterequal(int r1, int r2) { return cgcompare(r1, r2, "setge"); }
+/// @brief Compare two registers and jump if false
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label)
+{
+    // Check the range of the AST operation
+    if (ASTop < A_EQ || ASTop > A_GE)
+        fatal("Bad ASTop in cgcompare_and_set()");
+
+    /// @note
+    /// `cmpq %r2, %r1`                                → Performs `%r1 - %r2` and sets condition flags (ZF, SF, OF, CF).
+    /// `(invcmplist[ASTop - A_EQ]) (breglist[r2])`    → Emit conditional jump instruction to `L<label>` based on the inverted condition
+    ///                                                  Some `invcmplist[ASTop - A_EQ]` instructions:
+    ///                                                     + `jne`  - jump if not equal (ZF = 0)
+    ///                                                     + `je`   - jump if equal (ZF = 1)
+    ///                                                     + `jge`  - jump if greater or equal (SF == OF)
+    ///                                                     + `jle`  - jump if less or equal (ZF = 1 or SF != OF)
+    ///                                                     + `jg`   - jump if greater (ZF = 0 and SF == OF)
+    ///                                                     + `jl`   - jump if less (SF != OF)
+
+    fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+    fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
+    freeall_registers();
+
+    return NOREG;
+}
 
 // #endregion
