@@ -45,10 +45,7 @@ static int alloc_register(void)
 static void free_register(int reg)
 {
     if (freereg[reg] != 0)
-    {
-        fprintf(stderr, "Error trying to free register %d\n", reg);
-        exit(EXIT_FAILURE);
-    }
+        fatald("Error trying to free register", reg);
 
     freereg[reg] = 1;
 }
