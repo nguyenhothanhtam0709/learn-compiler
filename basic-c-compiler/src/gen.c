@@ -97,7 +97,7 @@ static int genWHILE(struct ASTnode *n)
 /// Return the register id with the tree's final value
 ///
 /// @param n AST
-/// @param reg the register (if any) that holds the previous rvalue, for IF statement, it is label to jump
+/// @param reg the register (if any) that holds the previous rvalue, for IF, WHILE, FOR statement, it is label to jump
 /// @param parentASTop the AST op of the parent
 int genAST(struct ASTnode *n, int reg, int parentASTop)
 {
