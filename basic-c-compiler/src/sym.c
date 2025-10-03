@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include "compat.h"
 
 /// @brief Position of next free global symbol slot
 static int Globs = 0;

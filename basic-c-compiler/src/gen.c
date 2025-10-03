@@ -1,3 +1,7 @@
+///
+/// Generic code generator
+///
+
 #include <stdlib.h>
 
 #include "defs.h"
