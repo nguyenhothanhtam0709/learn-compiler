@@ -126,7 +126,8 @@ void cgfuncpostamble()
 
 /// @brief Load an integer literal value into a register.
 /// Return the number of the register
-int cgloadint(int value)
+/// @note x86-64, we don't need to worry about the type.
+int cgloadint(int value, int type)
 {
     /// @brief r = value
     ///
@@ -142,20 +143,31 @@ int cgloadint(int value)
 
 /// @brief Load a value from a variable into a register.
 /// Return the number of the register
-int cgloadglob(char *identifier)
+int cgloadglob(int id)
 {
     /// @brief r = value of identifier
     ///
-    /// @note `movq identifier(%rip), %r8` → Take the memory contents at symbol `identifier` (relative to instruction pointer)
+    /// @note
+    /// __For P_INT__
+    /// `movq identifier(%rip), %r8` → Take the memory contents at symbol `identifier` (relative to instruction pointer)
     ///                                     and load it to register `r`.
+    /// The `movq` instruction moves eight bytes into the 8-byte register.
     /// `%rip`-relative addressing is how x86-64 does position-independent code (PIC).
     /// `identifier(%rip)` means "the 64-bit value stored at the address of `identifier`".
+    ///
+    /// __For P_CHAR__
+    /// `movzbq identifier(%rip), %r8`
+    /// Like P_INT but the `movzbq` instruction zeroes the 8-byte register and then moves a single byte into it.
+    ///
 
     // Get a new register
     int r = alloc_register();
 
-    // Print out the code to initialise it
-    fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
+    // Print out the code to initialise it: P_CHAR or P_INT
+    if (Gsym[id].type == P_INT)
+        fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+    else
+        fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
     return r;
 }
 
@@ -245,21 +257,32 @@ void cgprintint(int r)
 }
 
 /// @brief Store a register's value into a variable
-int cgstorglob(int r, char *identifier)
+int cgstorglob(int r, int id)
 {
     /// @brief identifier = r
     ///
-    /// @note `movq %r, identifier(%rip)` → Take the content of register `r` and store
+    /// @note
+    /// __For P_INT__
+    /// `movq %r, identifier(%rip)` → Take the content of register `r` and store
     ///                                    it into the memory location of global variable `identifier`.
+    ///
+    /// __For P_CHAR__
+    /// `movb %r, identifier(%rip)
+    ///
 
-    fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
+    if (Gsym[id].type == P_INT)
+        fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
+    else
+        fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], Gsym[id].name);
     return (r);
 }
 
 /// @brief Generate a global symbol
-void cgglobsym(char *sym)
+void cgglobsym(int id)
 {
-    /// @note `.comm sym, 8, 8` → Tells the assembler/linker to reserve uninitialized storage
+    /// @note `
+    /// __For P_INT__
+    /// `.comm sym, 8, 8` → Tells the assembler/linker to reserve uninitialized storage
     ///                           (like a global variable in C without an initializer).
     ///
     /// `x` → the symbol name (global variable name).
@@ -268,9 +291,17 @@ void cgglobsym(char *sym)
     ///
     /// This is exactly what GCC/Clang do for code like `long x;`.
     ///
+    /// __For P_CHAR__
+    /// `.comm sym, 1, 1`
+    ///
     /// @details `.comm symbol, length, alignment`
+    ///
 
-    fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
+    // Choose P_INT or P_CHAR
+    if (Gsym[id].type == P_INT)
+        fprintf(Outfile, "\t.comm\t%s,8,8\n", Gsym[id].name);
+    else
+        fprintf(Outfile, "\t.comm\t%s,1,1\n", Gsym[id].name);
 }
 
 // List of comparison instruction
@@ -362,6 +393,15 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label)
     freeall_registers();
 
     return NOREG;
+}
+
+/// @brief Widen the value in the register from the old
+/// to the new type, and return a register with
+/// this new value
+int cgwiden(int r, int oldtype, int newtype)
+{
+    // Nothing to do
+    return r;
 }
 
 // #endregion

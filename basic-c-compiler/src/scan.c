@@ -79,6 +79,10 @@ static int keyword(char *s)
 {
     switch (*s)
     {
+    case 'c':
+        if (!strcmp(s, "char"))
+            return T_CHAR;
+        break;
     case 'e':
         if (!strcmp(s, "else"))
             return T_ELSE;

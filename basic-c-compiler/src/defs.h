@@ -36,6 +36,7 @@ enum
     T_WHILE, // `while`
     T_FOR,   // `for`
     T_VOID,  // `void`
+    T_CHAR,  // `char`
     // #endregion
 };
 
@@ -67,30 +68,57 @@ enum
     A_IF,
     A_WHILE,
     A_FUNCTION,
+    A_WIDEN, // widen the more narrow child's value to be as wide as the wider child's value
+};
+
+/// @brief Primitive type
+enum
+{
+    P_NONE, // Indicate that the AST node doesn't represent an expression and have no type;
+    P_VOID,
+    P_CHAR,
+    P_INT
 };
 
 struct ASTnode
 {
-    int op; // "Operation" to be performed on this tree
+    /// @brief "Operation" to be performed on this tree.
+    int op;
+    /// @brief Type of any expression this tree generates.
+    int type;
     struct ASTnode *left;
     struct ASTnode *mid;
     struct ASTnode *right;
+    /// @brief For A_INTLIT, the integer value.
+    /// For A_IDENT, the symbol slot number.
+    /// For A_FUNCTION, the symbol slot number.
     union
     {
-        int intvalue; // For A_INTLIT, the integer value
-        int id;       // For A_IDENT, the symbol slot number
-    } v;              // For A_FUNCTION, the symbol slot number
+        int intvalue;
+        int id;
+    } v;
 };
 
 /// @brief Use NOREG when the AST generation
 /// functions have no register to return
 #define NOREG -1
 
+/// @brief Structural types
+enum
+{
+    S_VARIABLE,
+    S_FUNCTION
+};
+
 /// @brief Symbol table entry structure
 struct symtable
 {
     /// @brief Name of a symbol
     char *name;
+    /// @brief Primitive type for the symbol
+    int type;
+    /// @brief Structural type for the symbol
+    int stype;
 };
 
 #endif
