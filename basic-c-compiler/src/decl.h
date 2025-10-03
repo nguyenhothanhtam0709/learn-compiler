@@ -16,6 +16,7 @@ struct ASTnode *binexpr(int ptp);
 struct ASTnode *compound_statement(void);
 
 void var_declaration(void);
+struct ASTnode *function_declaration(void);
 
 int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
@@ -26,7 +27,8 @@ void genglobsym(char *s);
 
 void freeall_registers(void);
 void cgpreamble();
-void cgpostamble();
+void cgfuncpreamble(char *name);
+void cgfuncpostamble();
 int cgloadint(int value);
 int cgloadglob(char *identifier);
 int cgadd(int r1, int r2);

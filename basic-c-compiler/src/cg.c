@@ -45,10 +45,7 @@ static int alloc_register(void)
 static void free_register(int reg)
 {
     if (freereg[reg] != 0)
-    {
-        fprintf(stderr, "Error trying to free register %d\n", reg);
-        exit(EXIT_FAILURE);
-    }
+        fatald("Error trying to free register", reg);
 
     freereg[reg] = 1;
 }
@@ -100,17 +97,25 @@ void cgpreamble()
         "\tnop\n"                   // `nop`                    → no operation
         "\tleave\n"                 // `leave`                  → restore base pointer & stack
         "\tret\n"                   // `ret`                    → return to caller
-        "\n"
-        "\t.globl\tmain\n"           // `.globl main`           → export main symbol: declare main as global
-        "\t.type\tmain, @function\n" // `.type main, @function` → mark symbol type: declare main as function
-        "main:\n"                    // `main:`                 → start of function main
-        "\tpushq\t%rbp\n"            // `pushq %rbp`            → save old base pointer
-        "\tmovq	%rsp, %rbp\n",       // `movq %rsp, %rbp`       → establish new stack frame
+        "\n",
         Outfile);
 }
 
+// Print out a function preamble
+void cgfuncpreamble(char *name)
+{
+    fprintf(Outfile,
+            "\t.text\n"
+            "\t.globl\t%s\n"           // `.globl <name>`           → Declare <name> as a global symbol, visible to the linker
+            "\t.type\t%s, @function\n" // `.type <name>, @function` → Mark <name> as a function symbol (for debuggers/linkers)
+            "%s:\n"                    // `<name>:`                 → Define the label <name> (entry point of the function)
+            "\tpushq\t%%rbp\n"         // `pushq %rbp`              → Save caller's base pointer on the stack
+            "\tmovq\t%%rsp, %%rbp\n",  // `movq %rsp, %rbp`         → Set up a new stack frame: rbp = current stack pointer
+            name, name, name);
+}
+
 /// @brief Print out the assembly postamble
-void cgpostamble()
+void cgfuncpostamble()
 {
     fputs(
         "\tmovl	$0, %eax\n" // `movl $0, %eax`  → set return value of function to 0 (C convention)

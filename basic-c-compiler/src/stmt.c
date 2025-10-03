@@ -11,7 +11,6 @@ static struct ASTnode *single_statement(void);
 static struct ASTnode *print_statement(void)
 {
     struct ASTnode *tree;
-    int reg;
 
     // Match a 'print' as the first token
     match(T_PRINT, "print");

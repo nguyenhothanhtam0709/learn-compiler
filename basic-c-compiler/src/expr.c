@@ -72,10 +72,7 @@ static int op_precedence(int tokentype)
 {
     int prec = OpPrec[tokentype];
     if (prec == 0)
-    {
-        fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
-        exit(EXIT_FAILURE);
-    }
+        fatald("Syntax error, token", tokentype);
 
     return prec;
 }
@@ -87,13 +84,13 @@ struct ASTnode *binexpr(int ptp)
     struct ASTnode *left, *right;
     int tokentype;
 
-    // Get the integer literal on the left.
+    // Get the primary tree on the left.
     // Fetch the next token at the same time.
     left = primary();
 
-    // If we hit a semicolon, return just the left node
+    // If we hit a semicolon or ')', return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI)
+    if (tokentype == T_SEMI || tokentype == T_RPAREN)
         return left;
 
     // While the precedence of this token is
@@ -112,9 +109,9 @@ struct ASTnode *binexpr(int ptp)
         left = mkastnode(arithop(tokentype), left, NULL, right, 0);
 
         // Update the details of the current token.
-        // If we hit a semicolon, return just the left node
+        // If we hit a semicolon or ')', return just the left node
         tokentype = Token.token;
-        if (tokentype == T_SEMI)
+        if (tokentype == T_SEMI || tokentype == T_RPAREN)
             return left;
     }
 

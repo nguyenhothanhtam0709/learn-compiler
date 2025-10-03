@@ -30,11 +30,12 @@ enum
     T_RPAREN,
     // #region Keywords
     T_PRINT, // `print`
-    T_INT,
-    T_IF,
-    T_ELSE,
-    T_WHILE,
-    T_FOR,
+    T_INT,   // `int`
+    T_IF,    // `if`
+    T_ELSE,  // `else`
+    T_WHILE, // `while`
+    T_FOR,   // `for`
+    T_VOID,  // `void`
     // #endregion
 };
 
@@ -65,6 +66,7 @@ enum
     A_GLUE,
     A_IF,
     A_WHILE,
+    A_FUNCTION,
 };
 
 struct ASTnode
@@ -77,7 +79,7 @@ struct ASTnode
     {
         int intvalue; // For A_INTLIT, the integer value
         int id;       // For A_IDENT, the symbol slot number
-    } v;
+    } v;              // For A_FUNCTION, the symbol slot number
 };
 
 /// @brief Use NOREG when the AST generation
