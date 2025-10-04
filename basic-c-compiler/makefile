@@ -4,7 +4,7 @@ CFLAGS = -std=c17 -Wall -Wextra -O2
 # Project settings
 TARGET = main
 SRC    = $(wildcard src/*.c)
-SRC    := $(filter-out src/expr2.c src/interp.c, $(SRC))
+SRC    := $(filter-out src/cg_arm.c src/expr2.c src/interp.c, $(SRC))
 OBJ    = $(SRC:src/.c=build/.o)
 
 # Default rule

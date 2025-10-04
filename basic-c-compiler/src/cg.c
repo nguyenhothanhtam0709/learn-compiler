@@ -366,7 +366,7 @@ void cgglobsym(int id)
     ///                           (like a global variable in C without an initializer).
     ///
     /// `x` → the symbol name (global variable name).
-    /// `4` → allocate 4 bytes (size of a 64-bit integer).
+    /// `4` → allocate 4 bytes (size of a 32-bit integer).
     /// `4` → align it on an 4-byte boundary.
     ///
     /// This is exactly what GCC/Clang do for code like `int x;`.
