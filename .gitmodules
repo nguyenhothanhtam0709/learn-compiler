@@ -10,3 +10,12 @@
 [submodule "simple-interpreter-python"]
 	path = simple-interpreter-python
 	url = https://github.com/nguyenhothanhtam0709/simple-interpreter-python.git
+[submodule "learn-asm"]
+	path = learn-asm
+	url = https://github.com/nguyenhothanhtam0709/learn-asm
+[submodule "learn-c"]
+	path = learn-c
+	url = https://github.com/nguyenhothanhtam0709/learn-c
+[submodule "learn-cpp"]
+	path = learn-cpp
+	url = https://github.com/nguyenhothanhtam0709/learn-cpp
