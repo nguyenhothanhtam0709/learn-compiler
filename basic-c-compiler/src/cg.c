@@ -268,7 +268,7 @@ int cgstorglob(int r, int id)
     ///
     /// __For P_CHAR__
     /// `movb %r, identifier(%rip)
-    ///
+    /// `movb` instruction moves a single byte
 
     if (Gsym[id].type == P_INT)
         fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
