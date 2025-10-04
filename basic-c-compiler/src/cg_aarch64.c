@@ -1,5 +1,5 @@
 ///
-/// ARMv6 (32-bit) code generator (deprecated)
+/// AArch64 code generator
 ///
 
 #include <stdlib.h>
