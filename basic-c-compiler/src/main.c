@@ -13,6 +13,7 @@ static void init()
 {
     Line = 1;
     Putback = '\n';
+    Globs = 0;
 }
 
 /// @brief Print out a usage if started incorrectly
@@ -77,6 +78,7 @@ int main(int argc, char *argv[])
         if (Token.token == T_EOF)
             break;
     }
+    genpostamble();
 
     fclose(Infile);
     fclose(Outfile);

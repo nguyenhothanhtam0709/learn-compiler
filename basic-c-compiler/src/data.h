@@ -15,6 +15,8 @@ extern_ int Line;
 extern_ int Putback;
 /// @brief Symbol id of the current function
 extern_ int Functionid;
+/// @brief Position of next free global symbol slot
+extern_ int Globs;
 /// @brief Input file
 extern_ FILE *Infile;
 /// @brief Output file

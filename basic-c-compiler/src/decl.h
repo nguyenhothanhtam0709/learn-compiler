@@ -35,6 +35,7 @@ void genreturn(int reg, int id);
 
 void freeall_registers(void);
 void cgpreamble();
+void cgpostamble();
 void cgfuncpreamble(int id);
 void cgfuncpostamble(int id);
 int cgloadint(int value, int type);

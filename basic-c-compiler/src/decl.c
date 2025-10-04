@@ -20,6 +20,7 @@ int parse_type(int t)
         return P_VOID;
 
     fatald("Illegal type, token", t);
+    return 0; // Keep -Wall happy
 }
 
 /// @brief Parse the declaration of a variable
@@ -65,13 +66,16 @@ struct ASTnode *function_declaration(void)
     // Get the AST tree for the compound statement
     tree = compound_statement();
 
+    // If the function type isn't P_VOID, check that
+    // the last AST operation in the compound statement
+    // was a return statement
     if (type != P_VOID)
     {
         finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
         if (finalstmt == NULL || finalstmt->op != A_RETURN)
             fatal("No return for function with non-void type");
     }
-    
+
     // Return an A_FUNCTION node which has the function's nameslot
     // and the compound statement sub-tree
     return mkastunary(A_FUNCTION, type, tree, nameslot);

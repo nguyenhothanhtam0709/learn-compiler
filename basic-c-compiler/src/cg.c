@@ -103,6 +103,9 @@ void cgpreamble()
         Outfile);
 }
 
+// Nothing to do
+void cgpostamble() {}
+
 // Print out a function preamble
 void cgfuncpreamble(int id)
 {

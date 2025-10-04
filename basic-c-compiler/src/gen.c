@@ -186,14 +186,20 @@ int genAST(struct ASTnode *n, int reg, int parentASTop)
     case A_FUNCCALL:
         return cgcall(leftreg, n->v.id);
     default:
-        fprintf(stderr, "Unknown AST operator %d\n", n->op);
-        exit(EXIT_FAILURE);
+        fatald("Unknown AST operator", n->op);
     }
+
+    return NOREG;
 }
 
 void genpreamble()
 {
     cgpreamble();
+}
+
+void genpostamble()
+{
+    cgpostamble();
 }
 
 void genfreeregs()
