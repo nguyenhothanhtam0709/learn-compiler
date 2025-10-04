@@ -14,6 +14,8 @@ int parse_type(int t)
         return P_CHAR;
     if (t == T_INT)
         return P_INT;
+    if (t == T_LONG)
+        return P_LONG;
     if (t == T_VOID)
         return P_VOID;
 
@@ -29,7 +31,7 @@ void var_declaration(void)
     type = parse_type(Token.token);
     scan(&Token);
     ident();
-    id = addglob(Text, type, S_VARIABLE);
+    id = addglob(Text, type, S_VARIABLE, 0);
     genglobsym(id);
     semi();
 }
@@ -41,21 +43,36 @@ void var_declaration(void)
 /// Parse the declaration of a simplistic function
 struct ASTnode *function_declaration(void)
 {
-    struct ASTnode *tree;
-    int nameslot;
+    struct ASTnode *tree, *finalstmt;
+    int nameslot, type, endlabel;
 
-    // Find the 'void', the identifier, and the '(' ')'.
-    // For now, do nothing with them
-    match(T_VOID, "void");
+    // Get the type of the variable, then the identifier
+    type = parse_type(Token.token);
+    scan(&Token);
     ident();
-    nameslot = addglob(Text, P_VOID, S_FUNCTION);
+
+    // Get a label-id for the end label, add the function
+    // to the symbol table, and set the Functionid global
+    // to the function's symbol-id
+    endlabel = genlabel();
+    nameslot = addglob(Text, type, S_FUNCTION, endlabel);
+    Functionid = nameslot;
+
+    // Scan in the parentheses
     lparen();
     rparen();
 
     // Get the AST tree for the compound statement
     tree = compound_statement();
 
+    if (type != P_VOID)
+    {
+        finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
+        if (finalstmt == NULL || finalstmt->op != A_RETURN)
+            fatal("No return for function with non-void type");
+    }
+    
     // Return an A_FUNCTION node which has the function's nameslot
     // and the compound statement sub-tree
-    return mkastunary(A_FUNCTION, P_VOID, tree, nameslot);
+    return mkastunary(A_FUNCTION, type, tree, nameslot);
 }

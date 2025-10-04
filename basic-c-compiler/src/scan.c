@@ -97,9 +97,17 @@ static int keyword(char *s)
         if (!strcmp(s, "int"))
             return T_INT;
         break;
+    case 'l':
+        if (!strcmp(s, "long"))
+            return T_LONG;
+        break;
     case 'p':
         if (!strcmp(s, "print"))
             return T_PRINT;
+        break;
+    case 'r':
+        if (!strcmp(s, "return"))
+            return T_RETURN;
         break;
     case 'w':
         if (!strcmp(s, "while"))
@@ -145,11 +153,30 @@ static int scanident(int c, char *buf, int lim)
     return i;
 }
 
+/// @brief A pointer to a rejected token
+static struct token *Rejtoken = NULL;
+
+/// @brief Reject the token that we just scanned
+void reject_token(struct token *t)
+{
+    if (Rejtoken != NULL)
+        fatal("Can't reject token twice");
+    Rejtoken = t;
+}
+
 /// @brief Scan and return the next token found in the input.
 /// Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t)
 {
     int c, tokentype;
+
+    // If we have any rejected token, return it
+    if (Rejtoken != NULL)
+    {
+        t = Rejtoken;
+        Rejtoken = NULL;
+        return 1;
+    }
 
     // skip whitespace
     c = skip();

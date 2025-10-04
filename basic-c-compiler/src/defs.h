@@ -10,16 +10,25 @@
 enum
 {
     T_EOF,
-    T_PLUS,   // `+`
-    T_MINUS,  // `-`
-    T_STAR,   // `*`
-    T_SLASH,  // `/`
-    T_EQ,     // `==`
-    T_NE,     // `!=`
-    T_LT,     // `<`
-    T_GT,     // `>`
-    T_LE,     // `<=`
-    T_GE,     // `>=`
+    // #region Operators
+    T_PLUS,  // `+`
+    T_MINUS, // `-`
+    T_STAR,  // `*`
+    T_SLASH, // `/`
+    T_EQ,    // `==`
+    T_NE,    // `!=`
+    T_LT,    // `<`
+    T_GT,    // `>`
+    T_LE,    // `<=`
+    T_GE,    // `>=`
+    // #endregion
+    // #region Types
+    T_VOID, // `void`
+    T_CHAR, // `char`
+    T_INT,  // `int`
+    T_LONG, // `long`
+    // #endregion
+    // #region Structural tokens
     T_INTLIT, // Integer literal
     T_SEMI,   // `;`
     T_ASSIGN, // `=`
@@ -28,15 +37,14 @@ enum
     T_RBRACE,
     T_LPAREN,
     T_RPAREN,
-    // #region Keywords
-    T_PRINT, // `print`
-    T_INT,   // `int`
-    T_IF,    // `if`
-    T_ELSE,  // `else`
-    T_WHILE, // `while`
-    T_FOR,   // `for`
-    T_VOID,  // `void`
-    T_CHAR,  // `char`
+    // #endregion
+    // #region Other keywords
+    T_PRINT,  // `print`
+    T_IF,     // `if`
+    T_ELSE,   // `else`
+    T_WHILE,  // `while`
+    T_FOR,    // `for`
+    T_RETURN, // `return`
     // #endregion
 };
 
@@ -69,6 +77,8 @@ enum
     A_WHILE,
     A_FUNCTION,
     A_WIDEN, // widen the more narrow child's value to be as wide as the wider child's value
+    A_RETURN,
+    A_FUNCCALL,
 };
 
 /// @brief Primitive type
@@ -77,7 +87,8 @@ enum
     P_NONE, // Indicate that the AST node doesn't represent an expression and have no type;
     P_VOID,
     P_CHAR,
-    P_INT
+    P_INT,
+    P_LONG,
 };
 
 struct ASTnode
@@ -92,6 +103,7 @@ struct ASTnode
     /// @brief For A_INTLIT, the integer value.
     /// For A_IDENT, the symbol slot number.
     /// For A_FUNCTION, the symbol slot number.
+    /// For A_FUNCCALL, the symbol slot number.
     union
     {
         int intvalue;
@@ -119,6 +131,8 @@ struct symtable
     int type;
     /// @brief Structural type for the symbol
     int stype;
+    /// @brief For S_FUNCTIONs, the end label
+    int endlabel;
 };
 
 #endif

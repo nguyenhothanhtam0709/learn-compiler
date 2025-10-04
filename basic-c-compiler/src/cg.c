@@ -18,6 +18,8 @@ static int freereg[REG_NUM];
 static char *reglist[REG_NUM] = {"%r8", "%r9", "%r10", "%r11"};
 /// @brief List of registers that are lower 8-bit version of each register of `reglist`
 static char *breglist[REG_NUM] = {"%r8b", "%r9b", "%r10b", "%r11b"};
+/// @brief List of registers that are lower 32-bit version of each register of `reglist`
+static char *dreglist[REG_NUM] = {"%r8d", "%r9d", "%r10d", "%r11d"};
 
 /// @brief Set all registers as available
 void freeall_registers(void)
@@ -36,8 +38,8 @@ static int alloc_register(void)
             return i;
         }
 
-    fprintf(stderr, "Out of registers!\n");
-    exit(EXIT_FAILURE);
+    fatal("Out of registers");
+    return NOREG; // Keep -Wall happy
 }
 
 /// @brief Return a register to the list of available registers.
@@ -102,8 +104,9 @@ void cgpreamble()
 }
 
 // Print out a function preamble
-void cgfuncpreamble(char *name)
+void cgfuncpreamble(int id)
 {
+    char *name = Gsym[id].name;
     fprintf(Outfile,
             "\t.text\n"
             "\t.globl\t%s\n"           // `.globl <name>`           → Declare <name> as a global symbol, visible to the linker
@@ -115,12 +118,12 @@ void cgfuncpreamble(char *name)
 }
 
 /// @brief Print out the assembly postamble
-void cgfuncpostamble()
+void cgfuncpostamble(int id)
 {
+    cglabel(Gsym[id].endlabel); // Mark <endlabel>
     fputs(
-        "\tmovl	$0, %eax\n" // `movl $0, %eax`  → set return value of function to 0 (C convention)
-        "\tpopq	%rbp\n"     // `popq %rbp`      → restore old base pointer (undo function prologue)
-        "\tret\n",          // `ret`            → return to caller
+        "\tpopq	%rbp\n" // `popq %rbp`      → restore old base pointer (undo function prologue)
+        "\tret\n",      // `ret`            → return to caller
         Outfile);
 }
 
@@ -148,26 +151,42 @@ int cgloadglob(int id)
     /// @brief r = value of identifier
     ///
     /// @note
-    /// __For P_INT__
-    /// `movq identifier(%rip), %r8` → Take the memory contents at symbol `identifier` (relative to instruction pointer)
+    /// __For P_LONG__
+    /// `movq identifier(%rip), %r` → Take the memory contents at symbol `identifier` (relative to instruction pointer)
     ///                                     and load it to register `r`.
     /// The `movq` instruction moves eight bytes into the 8-byte register.
     /// `%rip`-relative addressing is how x86-64 does position-independent code (PIC).
     /// `identifier(%rip)` means "the 64-bit value stored at the address of `identifier`".
     ///
     /// __For P_CHAR__
-    /// `movzbq identifier(%rip), %r8`
-    /// Like P_INT but the `movzbq` instruction zeroes the 8-byte register and then moves a single byte into it.
+    /// `movzbq identifier(%rip), %r`
+    /// Like P_LONG but the `movzbq` instruction zeroes the 8-byte register and then moves a single byte into it.
+    ///
+    /// __For P_INT__
+    /// `movzbl identifier(%rip), %r`
+    /// Like P_LONG but the `movzbl` instruction moves a byte from memory or a register,
+    /// and zero-extend it into a 32-bit register.
     ///
 
     // Get a new register
     int r = alloc_register();
 
-    // Print out the code to initialise it: P_CHAR or P_INT
-    if (Gsym[id].type == P_INT)
-        fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
-    else
+    // Print out the code to initialise it
+    switch (Gsym[id].type)
+    {
+    case P_CHAR:
         fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+        break;
+    case P_INT:
+        fprintf(Outfile, "\tmovzbl\t%s(\%%rip), %s\n", Gsym[id].name, dreglist[r]);
+        break;
+    case P_LONG:
+        fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+        break;
+    default:
+        fatald("Bad type in cgloadglob:", Gsym[id].type);
+    }
+
     return r;
 }
 
@@ -256,52 +275,112 @@ void cgprintint(int r)
     free_register(r);
 }
 
+/// @brief Call a function with one argument from the given register
+/// Return the register with the result
+int cgcall(int r, int id)
+{
+    // Get a new register
+    int outr = alloc_register();
+
+    /// @note
+    /// ```asm
+    /// movq %r, %rdi       → Move argument from register %r into 1st arg register (%rdi)
+    /// call <func_name>    → Invoke function "func_name"
+    /// movq %rax, %outr    → Copy return value of function "func_name" from %rax (return-value register) into register %outr
+    /// ```
+
+    fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
+    fprintf(Outfile, "\tcall\t%s\n", Gsym[id].name);
+    fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
+    free_register(r);
+    return outr;
+}
+
 /// @brief Store a register's value into a variable
 int cgstorglob(int r, int id)
 {
     /// @brief identifier = r
     ///
     /// @note
-    /// __For P_INT__
+    /// __For P_LONG__
     /// `movq %r, identifier(%rip)` → Take the content of register `r` and store
     ///                                    it into the memory location of global variable `identifier`.
     ///
     /// __For P_CHAR__
     /// `movb %r, identifier(%rip)
     /// `movb` instruction moves a single byte
+    ///
+    /// __For P_INT__
+    /// `movl %r, identifier(%rip)
+    /// `movl` instruction moves 4-bytes
+    ///
 
-    if (Gsym[id].type == P_INT)
+    switch (Gsym[id].type)
+    {
+    case P_CHAR:
+        fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r],
+                Gsym[id].name);
+        break;
+    case P_INT:
+        fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r],
+                Gsym[id].name);
+        break;
+    case P_LONG:
         fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
-    else
-        fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], Gsym[id].name);
-    return (r);
+        break;
+    default:
+        fatald("Bad type in cgloadglob:", Gsym[id].type);
+    }
+    return r;
+}
+
+/// @brief Array of type sizes in P_XXX order.
+/// 0 means no size.
+static int psize[] = {
+    [P_NONE] = 0,
+    [P_VOID] = 0,
+    [P_CHAR] = 1,
+    [P_INT] = 4,
+    [P_LONG] = 8};
+
+/// @brief Given a P_XXX type value, return the
+/// size of a primitive type in bytes.
+int cgprimsize(int type)
+{
+    // Check the type is valid
+    if (type < P_NONE || type > P_LONG)
+        fatal("Bad type in cgprimsize()");
+    return psize[type];
 }
 
 /// @brief Generate a global symbol
 void cgglobsym(int id)
 {
-    /// @note `
+    /// @note
+    ///
     /// __For P_INT__
-    /// `.comm sym, 8, 8` → Tells the assembler/linker to reserve uninitialized storage
+    /// `.comm sym, 4, 4` → Tells the assembler/linker to reserve uninitialized storage
     ///                           (like a global variable in C without an initializer).
     ///
     /// `x` → the symbol name (global variable name).
-    /// `8` → allocate 8 bytes (size of a 64-bit integer).
-    /// `8` → align it on an 8-byte boundary.
+    /// `4` → allocate 4 bytes (size of a 64-bit integer).
+    /// `4` → align it on an 4-byte boundary.
     ///
-    /// This is exactly what GCC/Clang do for code like `long x;`.
+    /// This is exactly what GCC/Clang do for code like `int x;`.
     ///
     /// __For P_CHAR__
     /// `.comm sym, 1, 1`
     ///
+    /// __For P_LONG__
+    /// `.com sym, 8, 8`
+    ///
     /// @details `.comm symbol, length, alignment`
     ///
 
-    // Choose P_INT or P_CHAR
-    if (Gsym[id].type == P_INT)
-        fprintf(Outfile, "\t.comm\t%s,8,8\n", Gsym[id].name);
-    else
-        fprintf(Outfile, "\t.comm\t%s,1,1\n", Gsym[id].name);
+    // Get the size of the type
+    int typesize = genprimsize(Gsym[id].type);
+
+    fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
 }
 
 // List of comparison instruction
@@ -402,6 +481,52 @@ int cgwiden(int r, int oldtype, int newtype)
 {
     // Nothing to do
     return r;
+}
+
+// Generate code to return a value from a function
+void cgreturn(int reg, int id)
+{
+    /// @note Move return value to return-value register (%rax or %eax)
+    ///
+    /// __For P_CHAR__
+    /// `movzbl <reg>, %eax`
+    /// Move a single byte (8-bit) from `<reg>` into `%eax` and zero-extend it to 32 bits.
+    /// This ensures the upper bits of `%eax` are cleared, complying with the calling convention.
+    ///
+    /// __For P_INT__
+    /// `movl <reg>, %eax`
+    /// Move a 32-bit integer from `<reg>` into `%eax`.
+    /// Writing to `%eax` automatically clears the upper 32 bits of `%rax`.
+    ///
+    /// __For P_LONG__
+    /// `movq <reg>, %rax`
+    /// Move a 64-bit integer or pointer value from `<reg>` into `%rax`.
+    /// This is used for 64-bit (`long` or pointer) function return values.
+    ///
+
+    // Generate code depending on the function's type
+    switch (Gsym[id].type)
+    {
+    case P_CHAR:
+        fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+        break;
+    case P_INT:
+        fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+        break;
+    case P_LONG:
+        fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+        break;
+    default:
+        fatald("Bad function type in cgreturn:", Gsym[id].type);
+    }
+
+    /// @note
+    /// After moving the return value, the function jumps to its epilogue label:
+    /// `jmp L<endlabel>`
+    /// where `<endlabel>` marks the common return sequence (e.g., stack cleanup and `ret`).
+    ///
+
+    cgjump(Gsym[id].endlabel);
 }
 
 // #endregion

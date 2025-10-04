@@ -13,6 +13,8 @@
 extern_ int Line;
 /// @brief Character put back by scanner
 extern_ int Putback;
+/// @brief Symbol id of the current function
+extern_ int Functionid;
 /// @brief Input file
 extern_ FILE *Infile;
 /// @brief Output file
