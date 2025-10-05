@@ -83,6 +83,7 @@ void cgpreamble()
 
     freeall_registers();
     fputs(
+        // #region Define function `printint`
         "\t.text\n"                 // `.text`                  → begin code section
         ".LC0:\n"                   // `.LC0`                   → label for string literal
         "\t.string\t\"%d\\n\"\n"    // `.string "%d\n"`         → define string constant "%d\n"
@@ -99,6 +100,7 @@ void cgpreamble()
         "\tnop\n"                   // `nop`                    → no operation
         "\tleave\n"                 // `leave`                  → restore base pointer & stack
         "\tret\n"                   // `ret`                    → return to caller
+        // #endregion
         "\n",
         Outfile);
 }
