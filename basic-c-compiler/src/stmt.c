@@ -20,10 +20,9 @@ static struct ASTnode *print_statement(void)
     tree = binexpr(0);
 
     // Ensure the two types are compatible.
-    lefttype = P_INT;
-    righttype = tree->type;
-    if (!type_compatible(&lefttype, &righttype, 0))
-        fatal("Incompatible types");
+    tree = modify_type(tree, P_INT, 0);
+    if (tree == NULL)
+        fatal("Incompatible type to print");
 
     // Widen the tree if required.
     if (righttype)
@@ -38,7 +37,6 @@ static struct ASTnode *print_statement(void)
 static struct ASTnode *assignment_statement(void)
 {
     struct ASTnode *left, *right, *tree;
-    int lefttype, righttype;
     int id;
 
     // Ensure we have an identifier
@@ -64,14 +62,9 @@ static struct ASTnode *assignment_statement(void)
     left = binexpr(0);
 
     // Ensure the two types are compatible.
-    lefttype = left->type;
-    righttype = right->type;
-    if (!type_compatible(&lefttype, &righttype, 1))
-        fatal("Incompatible types");
-
-    // Widen the left if required.
-    if (lefttype)
-        left = mkastunary(lefttype, right->type, left, 0);
+    left = modify_type(left, right->type, 0);
+    if (left == NULL)
+        fatal("Incompatible expression in assignment");
 
     // Make an assignment AST tree
     tree = mkastnode(A_ASSIGN, P_INT, left, NULL, right, 0);
@@ -197,7 +190,6 @@ static struct ASTnode *for_statement(void)
 static struct ASTnode *return_statement(void)
 {
     struct ASTnode *tree;
-    int returntype, functype;
 
     // Can't return a value if function returns P_VOID
     if (Gsym[Functionid].type == P_VOID)
@@ -211,14 +203,9 @@ static struct ASTnode *return_statement(void)
     tree = binexpr(0);
 
     // Ensure this is compatible with the function's type
-    returntype = tree->type;
-    functype = Gsym[Functionid].type;
-    if (!type_compatible(&returntype, &functype, 1))
-        fatal("Incompatible types");
-
-    // Widen the left if required.
-    if (returntype)
-        tree = mkastunary(returntype, functype, tree, 0);
+    tree = modify_type(tree, Gsym[Functionid].type, 0);
+    if (tree == NULL)
+        fatal("Incompatible type to print");
 
     // Add on the A_RETURN node
     tree = mkastunary(A_RETURN, P_NONE, tree, 0);

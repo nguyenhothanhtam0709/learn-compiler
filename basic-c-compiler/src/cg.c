@@ -304,6 +304,13 @@ int cgcall(int r, int id)
     return outr;
 }
 
+/// @brief Shift a register left by a constant
+int cgshlconst(int r, int val)
+{
+    fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
+    return r;
+}
+
 /// @brief Store a register's value into a variable
 int cgstorglob(int r, int id)
 {
@@ -371,6 +378,10 @@ int cgprimsize(int type)
 /// @brief Generate a global symbol
 void cgglobsym(int id)
 {
+    // Get the size of the type
+    int typesize = genprimsize(Gsym[id].type);
+
+    // #region Old way to define global variable
     /// @note
     ///
     /// __For P_INT__
@@ -392,10 +403,28 @@ void cgglobsym(int id)
     /// @details `.comm symbol, length, alignment`
     ///
 
-    // Get the size of the type
-    int typesize = genprimsize(Gsym[id].type);
+    // fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
+    // #endregion
 
-    fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
+    /// @note Define global variable like below to ensure the adjacency
+
+    fprintf(Outfile, "\t.data\n"
+                     "\t.globl\t%s\n",
+            Gsym[id].name);
+    switch (typesize)
+    {
+    case 1:
+        fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
+        break;
+    case 4:
+        fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
+        break;
+    case 8:
+        fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
+        break;
+    default:
+        fatald("Unknown typesize in cgglobsym: ", typesize);
+    }
 }
 
 // List of comparison instruction

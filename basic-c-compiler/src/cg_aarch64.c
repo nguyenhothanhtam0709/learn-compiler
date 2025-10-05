@@ -147,20 +147,43 @@ void cgpostamble()
     /// ```
     ///
 
-    // Print out the uninitialized global variables.
-    fprintf(Outfile, "\t.section __DATA,__bss\n");
+    // Print out the global variables.
+    // fprintf(Outfile, "\t.section __DATA,__bss\n");
+    fprintf(Outfile, "\t.section __DATA,__data\n");
     for (int i = 0; i < Globs; i++)
         if (Gsym[i].stype == S_VARIABLE)
         {
             char *name = Gsym[i].name;
-            int size = genprimsize(Gsym[i].type);
+            int typesize = genprimsize(Gsym[i].type);
+            // fprintf(Outfile,
+            //         ".global __global_%s\n"
+            //         ".align %d\n"
+            //         "__global_%s:\n"
+            //         "\t.skip %d\n"
+            //         "\n",
+            //         name, typesize, name, typesize);
+
+            /// @note Define global variable like below to ensure the adjacency
+
             fprintf(Outfile,
-                    ".global __global_%s\n"
-                    ".align %d\n"
-                    "__global_%s:\n"
-                    "\t.skip %d\n"
-                    "\n",
-                    name, size, name, size);
+                    ".globl __global_%s\n"
+                    "__global_%s:\n",
+                    name, name);
+            switch (typesize)
+            {
+            case 1:
+                fprintf(Outfile, "\t.byte\t0\n", name);
+                break;
+            case 4:
+                fprintf(Outfile, "\t.long\t0\n", name);
+                break;
+            case 8:
+                fprintf(Outfile, "\t.quad\t0\n", name);
+                break;
+            default:
+                fatald("Unknown typesize in cgglobsym: ", typesize);
+            }
+            putc('\n', Outfile);
         }
     fputs("\n", Outfile);
     // #endregion
@@ -371,6 +394,13 @@ int cgcall(int r, int id)
     fprintf(Outfile, "\tbl\t%s\n", Gsym[id].name);
     fprintf(Outfile, "\tmov\t%s, x0\n", reglist[r]);
     return r;
+}
+
+/// @brief Shift a register left by a constant
+int cgshlconst(int r, int val)
+{
+    fprintf(Outfile, "\tlsl\t%s, %s, #%d\n", reglist[r], reglist[r], val);
+    return (r);
 }
 
 /// @brief Store a register's value into a variable

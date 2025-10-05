@@ -23,9 +23,9 @@ struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
 int parse_type(void);
-int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
 
 int genlabel(void);
 int genAST(struct ASTnode *n, int reg, int parentASTop);
@@ -48,6 +48,7 @@ int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
+int cgshlconst(int r, int val);
 void cgprintint(int r);
 int cgcall(int r, int id);
 int cgstorglob(int r, int id);

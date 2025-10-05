@@ -84,6 +84,7 @@ enum
     A_FUNCCALL,
     A_DEREF, // Dereference the pointer in the child node
     A_ADDR,  // Get the address of the identifier in this node
+    A_SCALE,
 };
 
 /// @brief Primitive type
@@ -112,11 +113,13 @@ struct ASTnode
     /// @brief For A_INTLIT, the integer value.
     /// For A_IDENT, the symbol slot number.
     /// For A_FUNCTION, the symbol slot number.
+    /// For A_SCALE, the size to scale by
     /// For A_FUNCCALL, the symbol slot number.
     union
     {
         int intvalue;
         int id;
+        int size;
     } v;
 };
 
