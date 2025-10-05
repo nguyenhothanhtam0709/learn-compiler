@@ -155,9 +155,9 @@ void cgpostamble()
             char *name = Gsym[i].name;
             int size = genprimsize(Gsym[i].type);
             fprintf(Outfile,
-                    ".global %s\n"
+                    ".global __global_%s\n"
                     ".align %d\n"
-                    "%s:\n"
+                    "__global_%s:\n"
                     "\t.skip %d\n"
                     "\n",
                     name, size, name, size);
@@ -253,14 +253,20 @@ int cgloadint(int value, int type)
     return r;
 }
 
+/// @brief Generate code to load address of global
+/// variable to a register
+static void load_global_var_addr(const char *var_name, const char *r_name)
+{
+    fprintf(Outfile,
+            "\tadrp\t%s, __global_%s@PAGE\n"
+            "\tadd\t%s, %s, __global_%s@PAGEOFF\n",
+            r_name, var_name, r_name, r_name, var_name);
+}
+
 /// @brief Generate code to load global variable addr to `x3`
 static void load_var_symbol(int id)
 {
-    const char *name = Gsym[id].name;
-    fprintf(Outfile,
-            "\tadrp\tx3, %s@PAGE\n"
-            "\tadd\tx3, x3, %s@PAGEOFF\n",
-            name, name);
+    load_global_var_addr(Gsym[id].name, "x3");
 }
 
 /// @brief Load a value from a variable into a register.
@@ -520,16 +526,8 @@ int cgaddress(int id)
 {
     // Get a new register
     int r = alloc_register();
-    const char *name = Gsym[id].name;
-
-    /// @note Like `load_var_symbol(id)` but load addr into custom register
-    /// instead of `x3`
-
     // Get the offset to the variable
-    fprintf(Outfile,
-            "\tadrp\t%s, %s@PAGE\n"
-            "\tadd\t%s, %s, %s@PAGEOFF\n",
-            reglist[r], name, reglist[r], reglist[r], name);
+    load_global_var_addr(Gsym[id].name, reglist[r]);
 
     return r;
 }
