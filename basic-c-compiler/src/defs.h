@@ -39,6 +39,7 @@ enum
     T_RPAREN,
     T_AMPER,
     T_LOGAND,
+    T_COMMA,
     // #endregion
     // #region Other keywords
     T_PRINT,  // `print`

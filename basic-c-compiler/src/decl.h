@@ -18,9 +18,11 @@ struct ASTnode *binexpr(int ptp);
 
 struct ASTnode *compound_statement(void);
 
-void var_declaration(void);
-struct ASTnode *function_declaration(void);
+void var_declaration(int type);
+struct ASTnode *function_declaration(int type);
+void global_declarations(void);
 
+int parse_type(void);
 int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);

@@ -69,16 +69,10 @@ int main(int argc, char *argv[])
     // For now, ensure that void printint() is defined
     addglob("printint", P_CHAR, S_FUNCTION, 0);
 
-    scan(&Token);  // Get the first token from the input
-    genpreamble(); // Output the preamble
-    for (;;)
-    {
-        tree = function_declaration();
-        genAST(tree, NOREG, 0); // Generate the assembly code for ast
-        if (Token.token == T_EOF)
-            break;
-    }
-    genpostamble();
+    scan(&Token);          // Get the first token from the input
+    genpreamble();         // Output the preamble
+    global_declarations(); // Parse the global declarations
+    genpostamble();        // Output the postamble
 
     fclose(Infile);
     fclose(Outfile);
