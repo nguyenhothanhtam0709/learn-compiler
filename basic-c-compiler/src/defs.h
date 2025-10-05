@@ -37,6 +37,8 @@ enum
     T_RBRACE,
     T_LPAREN,
     T_RPAREN,
+    T_AMPER,
+    T_LOGAND,
     // #endregion
     // #region Other keywords
     T_PRINT,  // `print`
@@ -79,6 +81,8 @@ enum
     A_WIDEN, // widen the more narrow child's value to be as wide as the wider child's value
     A_RETURN,
     A_FUNCCALL,
+    A_DEREF, // Dereference the pointer in the child node
+    A_ADDR,  // Get the address of the identifier in this node
 };
 
 /// @brief Primitive type
@@ -89,6 +93,10 @@ enum
     P_CHAR,
     P_INT,
     P_LONG,
+    P_VOIDPTR,
+    P_CHARPTR,
+    P_INTPTR,
+    P_LONGPTR,
 };
 
 struct ASTnode

@@ -248,6 +248,15 @@ int scan(struct token *t)
             t->token = T_GT;
         }
         break;
+    case '&':
+        if ((c = next()) == '&')
+            t->token = T_LOGAND;
+        else
+        {
+            putback(c);
+            t->token = T_AMPER;
+        }
+        break;
     default:
         // If it's a digit, scan the
         // literal integer value in

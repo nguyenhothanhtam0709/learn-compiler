@@ -158,7 +158,8 @@ void cgpostamble()
                     ".global %s\n"
                     ".align %d\n"
                     "%s:\n"
-                    "\t.skip %d\n",
+                    "\t.skip %d\n"
+                    "\n",
                     name, size, name, size);
         }
     fputs("\n", Outfile);
@@ -282,6 +283,9 @@ int cgloadglob(int id)
         fprintf(Outfile, "\tldr\t%s, [x3]\n", dreglist[r]);
         break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
         fprintf(Outfile, "\tldr\t%s, [x3]\n", reglist[r]);
         break;
     default:
@@ -378,10 +382,13 @@ int cgstorglob(int r, int id)
         fprintf(Outfile, "\tstr\t%s, [x3]\n", dreglist[r]); // 32-bit store (use wX)
         break;
     case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
         fprintf(Outfile, "\tstr\t%s, [x3]\n", reglist[r]); // 64-bit store (use xX)
         break;
     default:
-        fatald("Bad type in cgloadglob:", Gsym[id].type);
+        fatald("Bad type in cgstorglob:", Gsym[id].type);
     }
 
     return r;
@@ -394,14 +401,18 @@ static int psize[] = {
     [P_VOID] = 0,
     [P_CHAR] = 1,
     [P_INT] = 4,
-    [P_LONG] = 8};
+    [P_LONG] = 8,
+    [P_VOIDPTR] = 8,
+    [P_CHARPTR] = 8,
+    [P_INTPTR] = 8,
+    [P_LONGPTR] = 8};
 
 /// @brief Given a P_XXX type value, return the
 /// size of a primitive type in bytes.
 int cgprimsize(int type)
 {
     // Check the type is valid
-    if (type < P_NONE || type > P_LONG)
+    if (type < P_NONE || type > P_LONGPTR)
         fatal("Bad type in cgprimsize()");
     return psize[type];
 }
@@ -501,6 +512,48 @@ void cgreturn(int reg, int id)
 
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[reg]);
     cgjump(Gsym[id].endlabel);
+}
+
+/// @brief Generate code to load the address of a global
+/// identifier into a variable. Return a new register
+int cgaddress(int id)
+{
+    // Get a new register
+    int r = alloc_register();
+    const char *name = Gsym[id].name;
+
+    /// @note Like `load_var_symbol(id)` but load addr into custom register
+    /// instead of `x3`
+
+    // Get the offset to the variable
+    fprintf(Outfile,
+            "\tadrp\t%s, %s@PAGE\n"
+            "\tadd\t%s, %s, %s@PAGEOFF\n",
+            reglist[r], name, reglist[r], reglist[r], name);
+
+    return r;
+}
+
+/// @brief Dereference a pointer to get the value it
+/// pointing at into the same register
+int cgderef(int r, int type)
+{
+    /// @note
+    /// `ldr w0, [x0]` // Load the 32-bit value *p into w0
+    ///
+    switch (type)
+    {
+    case P_CHARPTR:
+        fprintf(Outfile, "\tldrb\t%s, [%s]\n", dreglist[r], reglist[r]);
+        break;
+    case P_INTPTR:
+        fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+        break;
+    case P_LONGPTR:
+        fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+        break;
+    }
+    return r;
 }
 
 // #endregion
