@@ -92,8 +92,8 @@ static int load_int_label(int val)
     int lidx = get_int_label(val);
 
     fprintf(Outfile,
-            "\tadrp\tx3, intconst%d@PAGE\n"
-            "\tadd\tx3, x3, intconst%d@PAGEOFF\n",
+            "\tadrp\tx3, __intconst_%d@PAGE\n"
+            "\tadd\tx3, x3, __intconst_%d@PAGEOFF\n",
             lidx, lidx);
 }
 
@@ -209,8 +209,8 @@ void cgpostamble()
     {
         int lidx = Intlist[i].l;
         fprintf(Outfile,
-                ".global intconst%d\n"
-                "intconst%d:\n"
+                ".global __intconst_%d\n"
+                "__intconst_%d:\n"
                 "\t.quad %d",
                 lidx, lidx, Intlist[i].val);
     }
@@ -274,7 +274,6 @@ int cgloadint(int value, int type)
     }
     else
     {
-
         load_int_label(value);
         fprintf(Outfile,
                 "\tldr\t%s, [x3]\n",
