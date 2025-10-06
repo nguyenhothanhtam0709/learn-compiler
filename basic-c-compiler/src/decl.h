@@ -14,7 +14,6 @@ struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue);
 void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
-struct ASTnode *funccall(void);
 struct ASTnode *binexpr(int ptp);
 
 struct ASTnode *compound_statement(void);
@@ -23,17 +22,18 @@ void var_declaration(int type);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
+int inttype(int type);
 int parse_type(void);
 int pointer_to(int type);
 int value_at(int type);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
 
 int genlabel(void);
-int genAST(struct ASTnode *n, int label, int parentASTop);
+int genAST(struct ASTnode *n, int reg, int parentASTop);
 void genpreamble();
 void genpostamble();
 void genfreeregs();
-void genprintint(int reg);
+__deprecated void genprintint(int reg);
 void genglobsym(int id);
 int genprimsize(int type);
 void genreturn(int reg, int id);
@@ -50,7 +50,7 @@ int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 int cgshlconst(int r, int val);
-void cgprintint(int r);
+__deprecated void cgprintint(int r);
 int cgcall(int r, int id);
 int cgstorglob(int r, int id);
 void cgglobsym(int id);
@@ -81,6 +81,7 @@ int findglob(char *s);
 int addglob(char *name,
             int type,
             int stype,
-            int endlabel);
+            int endlabel,
+            int size);
 
 #endif

@@ -268,7 +268,8 @@ int cgdiv(int r1, int r2)
     return (r1);
 }
 /// @brief printint() with the given register
-void cgprintint(int r)
+/// @deprecated
+__deprecated void cgprintint(int r)
 {
     /// @note There isn't an x86-64 instruction to print a register out as a decimal number.
     /// To solve this problem, the assembly preamble contains a function called `printint()`
@@ -408,23 +409,27 @@ void cgglobsym(int id)
 
     /// @note Define global variable like below to ensure the adjacency
 
+    // Generate the global identity and the label
     fprintf(Outfile, "\t.data\n"
-                     "\t.globl\t%s\n",
-            Gsym[id].name);
-    switch (typesize)
-    {
-    case 1:
-        fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
-        break;
-    case 4:
-        fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
-        break;
-    case 8:
-        fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
-        break;
-    default:
-        fatald("Unknown typesize in cgglobsym: ", typesize);
-    }
+                     "\t.globl\t%s\n"
+                     "%s:\n",
+            Gsym[id].name, Gsym[id].name);
+    // Generate the space
+    for (int i = 0; i < Gsym[id].size; i++)
+        switch (typesize)
+        {
+        case 1:
+            fprintf(Outfile, "\t.byte\t0\n");
+            break;
+        case 4:
+            fprintf(Outfile, "\t.long\t0\n");
+            break;
+        case 8:
+            fprintf(Outfile, "\t.quad\t0\n");
+            break;
+        default:
+            fatald("Unknown typesize in cgglobsym: ", typesize);
+        }
 }
 
 // List of comparison instruction

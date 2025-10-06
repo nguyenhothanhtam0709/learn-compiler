@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "defs.h"
 #include "data.h"
@@ -101,10 +102,14 @@ void cgpreamble()
 {
     freeall_registers();
     fputs(
-        "\t.section __TEXT,__text\n" // `.section __TEXT,__text`              → begin code section
-        "\t.extern _printf\n"        // `.extern _printf`
+        "\t.extern _printf\n" // `.extern _printf`
+        "\n"
+        "\t.cstring\n"
+        "msgfmt:\n"
+        "\t.asciz \"%d\\n\"\n"
         "\n"
         // #region Define function `printint`
+        "\t.text\n"                       // `.text`              → begin code section
         "\t.global printint\n"            // `.global printint`
         "printint:\n"                     // `printint:`
         "\tstp\tx29, x30, [sp, -16]!\n"   // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
@@ -149,43 +154,45 @@ void cgpostamble()
 
     // Print out the global variables.
     // fprintf(Outfile, "\t.section __DATA,__bss\n");
-    fprintf(Outfile, "\t.section __DATA,__data\n");
-    for (int i = 0; i < Globs; i++)
-        if (Gsym[i].stype == S_VARIABLE)
-        {
-            char *name = Gsym[i].name;
-            int typesize = genprimsize(Gsym[i].type);
-            // fprintf(Outfile,
-            //         ".global __global_%s\n"
-            //         ".align %d\n"
-            //         "__global_%s:\n"
-            //         "\t.skip %d\n"
-            //         "\n",
-            //         name, typesize, name, typesize);
+    // // fprintf(Outfile, "\t.section __DATA,__data\n");
+    // for (int i = 0; i < Globs; i++)
+    //     if (Gsym[i].stype == S_VARIABLE)
+    //     {
+    //         char *name = Gsym[i].name;
+    //         int typesize = genprimsize(Gsym[i].type);
+    //         int align = log2(typesize);
 
-            /// @note Define global variable like below to ensure the adjacency
+    //         fprintf(Outfile,
+    //                 ".global __global_%s\n"
+    //                 ".align %d\n"
+    //                 "__global_%s:\n"
+    //                 "\t.skip %d\n"
+    //                 "\n",
+    //                 name, align, name, typesize);
 
-            fprintf(Outfile,
-                    ".globl __global_%s\n"
-                    "__global_%s:\n",
-                    name, name);
-            switch (typesize)
-            {
-            case 1:
-                fprintf(Outfile, "\t.byte\t0\n", name);
-                break;
-            case 4:
-                fprintf(Outfile, "\t.long\t0\n", name);
-                break;
-            case 8:
-                fprintf(Outfile, "\t.quad\t0\n", name);
-                break;
-            default:
-                fatald("Unknown typesize in cgglobsym: ", typesize);
-            }
-            putc('\n', Outfile);
-        }
-    fputs("\n", Outfile);
+    //         /// @note Define global variable like below to ensure the adjacency
+
+    //         // fprintf(Outfile,
+    //         //         ".globl __global_%s\n"
+    //         //         "__global_%s:\n",
+    //         //         name, name);
+    //         // switch (typesize)
+    //         // {
+    //         // case 1:
+    //         //     fprintf(Outfile, "\t.byte\t0\n");
+    //         //     break;
+    //         // case 4:
+    //         //     fprintf(Outfile, "\t.long\t0\n");
+    //         //     break;
+    //         // case 8:
+    //         //     fprintf(Outfile, "\t.quad\t0\n");
+    //         //     break;
+    //         // default:
+    //         //     fatald("Unknown typesize in cgglobsym: ", typesize);
+    //         // }
+    //         putc('\n', Outfile);
+    //     }
+    // fputs("\n", Outfile);
     // #endregion
 
     // #region Define integer literals
@@ -211,12 +218,12 @@ void cgpostamble()
     // #region
 
     // #region Print out the string literals
-    fputs(
-        "\n"
-        "\t.section __TEXT,__cstring\n"
-        "msgfmt:\n"
-        "\t.asciz \"%d\\n\"",
-        Outfile);
+    // fputs(
+    //     "\n"
+    //     "\t.section __TEXT,__cstring\n"
+    //     "msgfmt:\n"
+    //     "\t.asciz \"%d\\n\"",
+    //     Outfile);
     // #endregion
 }
 
@@ -227,6 +234,7 @@ void cgfuncpreamble(int id)
     if (!strcmp(name, "main"))
         name = strdup("_main");
     fprintf(Outfile,
+            "\t.text\n"
             "\t.global\t%s\n"               // `.global <name>`             → Declare <name> as a global symbol, visible to the linker
             "%s:\n"                         // `<name>:`                   → Define the label <name> (entry point of the function)
             "\tstp\tx29, x30, [sp, -16]!\n" // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
@@ -379,7 +387,8 @@ int cgdiv(int r1, int r2)
 }
 
 /// @brief printint() with the given register
-void cgprintint(int r)
+/// @deprecated
+__deprecated void cgprintint(int r)
 {
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[r]);
     fprintf(Outfile, "\tbl\tprintint\n");
@@ -453,9 +462,22 @@ int cgprimsize(int type)
     return psize[type];
 }
 
-/// @note Do nothing
-/// In AArch64, all variable definition will be in __DATA section
-void cgglobsym(int id) {}
+/// @note Generate a global symbol
+void cgglobsym(int id)
+{
+    char *name = Gsym[id].name;
+    int typesize = genprimsize(Gsym[id].type);
+    int align = log2(typesize);
+
+    fprintf(Outfile,
+            "\t.bss\n"
+            "\t.align %d\n"
+            "\t.globl __global_%s\n"
+            "__global_%s:\n"
+            "\t.space %d\n"
+            "\n",
+            align, name, name, typesize * Gsym[id].size);
+}
 
 // List of comparison instruction
 static char *cmplist[] = {

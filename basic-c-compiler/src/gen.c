@@ -236,7 +236,8 @@ void genfreeregs()
     freeall_registers();
 }
 
-void genprintint(int reg)
+/// @deprecated
+__deprecated void genprintint(int reg)
 {
     cgprintint(reg);
 }

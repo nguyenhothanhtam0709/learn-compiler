@@ -38,6 +38,8 @@ enum
     T_LPAREN,
     T_RPAREN,
     T_AMPER,
+    T_LBRACKET,
+    T_RBRACKET,
     T_LOGAND,
     T_COMMA,
     // #endregion
@@ -136,7 +138,8 @@ struct ASTnode
 enum
 {
     S_VARIABLE,
-    S_FUNCTION
+    S_FUNCTION,
+    S_ARRAY
 };
 
 /// @brief Symbol table entry structure
@@ -150,6 +153,8 @@ struct symtable
     int stype;
     /// @brief For S_FUNCTIONs, the end label
     int endlabel;
+    /// @brief Number of elements in the symbol
+    int size;
 };
 
 #endif

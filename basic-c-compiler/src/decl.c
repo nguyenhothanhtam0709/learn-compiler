@@ -44,38 +44,47 @@ int parse_type(void)
     return type;
 }
 
-/// @brief Parse the declaration of a list of variables.
+/// @brief variable_declaration: type identifier ';'
+///        | type identifier '[' INTLIT ']' ';'
+///        ;
+///
+/// Parse the declaration of a scalar variable or an array
+/// with a given size.
 /// The identifier has been scanned & we have the type
 void var_declaration(int type)
 {
     int id;
 
-    for (;;)
+    // Text now has the identifier's name.
+    // If the next token is a '['
+    if (Token.token == T_LBRACKET)
     {
-        // Text now has the identifier's name.
+        // Skip the past '['
+        scan(&Token);
+
+        // Check we have an array size
+        if (Token.token == T_INTLIT)
+        {
+            // Add this as a known array and generate its space in assembly.
+            // We treat the array as a pointer to its elements' type
+            id = addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+            genglobsym(id);
+        }
+
+        // ensure we have a following ']'
+        scan(&Token);
+        match(T_RBRACKET, "]");
+    }
+    else
+    {
         // Add it as a known identifier
         // and generate its space in assembly
-        id = addglob(Text, type, S_VARIABLE, 0);
+        id = addglob(Text, type, S_VARIABLE, 0, 1);
         genglobsym(id);
-
-        // If the next token is a semicolon,
-        // skip it and return.
-        if (Token.token == T_SEMI)
-        {
-            scan(&Token);
-            return;
-        }
-
-        // If the next token is a comma, skip it,
-        // get the identifier and loop back
-        if (Token.token == T_COMMA)
-        {
-            scan(&Token);
-            ident();
-            continue;
-        }
-        fatal("Missing , or ; after identifier");
     }
+
+    // Get the trailing semicolon
+    semi();
 }
 
 /// @brief For now we have a very simplistic function definition grammar
@@ -94,7 +103,7 @@ struct ASTnode *function_declaration(int type)
     // to the symbol table, and set the Functionid global
     // to the function's symbol-id
     endlabel = genlabel();
-    nameslot = addglob(Text, type, S_FUNCTION, endlabel);
+    nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
     Functionid = nameslot;
 
     // Scan in the parentheses
