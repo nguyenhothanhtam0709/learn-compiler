@@ -28,4 +28,6 @@ extern_ char Text[TEXTLEN + 1];
 /// @brief Global symbol table
 extern_ struct symtable Gsym[NSYMBOLS];
 
+extern_ int O_dumpAST;
+
 #endif

@@ -575,13 +575,33 @@ int cgderef(int r, int type)
         fprintf(Outfile, "\tldrb\t%s, [%s]\n", dreglist[r], reglist[r]);
         break;
     case P_INTPTR:
-        fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+        fprintf(Outfile, "\tldr\t%s, [%s]\n", dreglist[r], reglist[r]);
         break;
     case P_LONGPTR:
         fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
         break;
     }
     return r;
+}
+
+/// @brief Store through a dereferenced pointer
+int cgstorderef(int r1, int r2, int type)
+{
+    switch (type)
+    {
+    case P_CHAR:
+        fprintf(Outfile, "\tstrb\t%s, [%s]\n", dreglist[r1], reglist[r2]);
+        break;
+    case P_INT:
+        fprintf(Outfile, "\tstr\t%s, [%s]\n", dreglist[r1], reglist[r2]);
+        break;
+    case P_LONG:
+        fprintf(Outfile, "\tstr\t%s, [%s]\n", reglist[r1], reglist[r2]);
+        break;
+    default:
+        fatald("Can't cgstoderef on type:", type);
+    }
+    return r1;
 }
 
 // #endregion

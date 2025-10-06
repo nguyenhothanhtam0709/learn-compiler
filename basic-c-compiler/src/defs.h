@@ -11,16 +11,17 @@ enum
 {
     T_EOF,
     // #region Operators
-    T_PLUS,  // `+`
-    T_MINUS, // `-`
-    T_STAR,  // `*`
-    T_SLASH, // `/`
-    T_EQ,    // `==`
-    T_NE,    // `!=`
-    T_LT,    // `<`
-    T_GT,    // `>`
-    T_LE,    // `<=`
-    T_GE,    // `>=`
+    T_ASSIGN, // `=`
+    T_PLUS,   // `+`
+    T_MINUS,  // `-`
+    T_STAR,   // `*`
+    T_SLASH,  // `/`
+    T_EQ,     // `==`
+    T_NE,     // `!=`
+    T_LT,     // `<`
+    T_GT,     // `>`
+    T_LE,     // `<=`
+    T_GE,     // `>=`
     // #endregion
     // #region Types
     T_VOID, // `void`
@@ -31,7 +32,6 @@ enum
     // #region Structural tokens
     T_INTLIT, // Integer literal
     T_SEMI,   // `;`
-    T_ASSIGN, // `=`
     T_IDENT,
     T_LBRACE,
     T_RBRACE,
@@ -42,7 +42,6 @@ enum
     T_COMMA,
     // #endregion
     // #region Other keywords
-    T_PRINT,  // `print`
     T_IF,     // `if`
     T_ELSE,   // `else`
     T_WHILE,  // `while`
@@ -60,7 +59,8 @@ struct token
 /// @brief AST node types
 enum
 {
-    A_ADD = 1,
+    A_ASSIGN = 1,
+    A_ADD,
     A_SUBTRACT,
     A_MULTIPLY,
     A_DIVIDE,
@@ -72,9 +72,6 @@ enum
     A_GE,
     A_INTLIT, // Integer literal
     A_IDENT,
-    A_LVIDENT, // lvalue identifier
-    A_ASSIGN,
-    A_PRINT,
     A_GLUE,
     A_IF,
     A_WHILE,
@@ -101,12 +98,17 @@ enum
     P_LONGPTR,
 };
 
+/// @note
+/// - For A_ASSIGN,`right` is actually lvalue
 struct ASTnode
 {
     /// @brief "Operation" to be performed on this tree.
     int op;
     /// @brief Type of any expression this tree generates.
     int type;
+    /// @brief True if the node is an rvalue
+    /// @note Before we can determine a specific node is rvalue, all nodes are assumed as lvalue by the compiler.
+    int rvalue;
     struct ASTnode *left;
     struct ASTnode *mid;
     struct ASTnode *right;
@@ -126,6 +128,9 @@ struct ASTnode
 /// @brief Use NOREG when the AST generation
 /// functions have no register to return
 #define NOREG -1
+/// @brief Use NOLABEL when we have no label to
+/// pass to genAST()
+#define NOLABEL 0
 
 /// @brief Structural types
 enum
