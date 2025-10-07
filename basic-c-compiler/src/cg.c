@@ -98,9 +98,20 @@ void cgpreamble()
         "\tleaq	.LC0(%rip), %rdi\n" // `leaq .LC0(%rip), %rdi`  → load address of "%d\n" into rdi (1st arg)
         "\tmovl	$0, %eax\n"         // `movl $0, %eax`          → clear eax (needed for varargs call)
         "\tcall	printf@PLT\n"       // `call printf@PLT`        → call printf("%d\n", x), `@PLT` = Procedure Linkage Table entry
-        "\tnop\n"                   // `nop`                    → no operation
         "\tleave\n"                 // `leave`                  → restore base pointer & stack
         "\tret\n"                   // `ret`                    → return to caller
+        // #endregion
+        "\n"
+        // #region Define function `printchar`
+        "\t.text\n"
+        "printchar:\n"
+        "\tpushq\t%rbp\n"
+        "\tmovq\t%rsp, %rbp\n"
+        "\tandl\t$0x7f, %edi\n"        // x & 0x7f → int arg for putc
+        "\tmovq\tstdout(%rip), %rsi\n" // FILE *stream = stdout
+        "\tcall\tputc@PLT\n"
+        "\tleave\n"
+        "\tret\n"
         // #endregion
         "\n",
         Outfile);
@@ -196,6 +207,16 @@ int cgloadglob(int id)
         fatald("Bad type in cgloadglob:", Gsym[id].type);
     }
 
+    return r;
+}
+
+/// @brief Given the label number of a global string,
+/// load its address into a new register
+int cgloadglobstr(int id)
+{
+    // Get a new register
+    int r = alloc_register();
+    fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s\n", id, reglist[r]);
     return r;
 }
 
@@ -441,6 +462,18 @@ void cgglobsym(int id)
         default:
             fatald("Unknown typesize in cgglobsym: ", typesize);
         }
+}
+
+/// @brief Generate a global string and its start label
+void cgglobstr(int l, char *strvalue)
+{
+    char *cptr;
+    cglabel(l);
+    for (cptr = strvalue; *cptr; cptr++)
+    {
+        fprintf(Outfile, "\t.byte\t%d\n", *cptr);
+    }
+    fprintf(Outfile, "\t.byte\t0\n");
 }
 
 // List of comparison instruction

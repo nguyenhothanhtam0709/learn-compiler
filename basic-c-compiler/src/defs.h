@@ -31,6 +31,7 @@ enum
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
+    T_STRLIT, // String literal
     T_SEMI,   // `;`
     T_IDENT,
     T_LBRACE,
@@ -73,6 +74,7 @@ enum
     A_LE,
     A_GE,
     A_INTLIT, // Integer literal
+    A_STRLIT, // String literal
     A_IDENT,
     A_GLUE,
     A_IF,

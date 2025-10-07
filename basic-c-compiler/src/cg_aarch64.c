@@ -11,6 +11,33 @@
 #include "decl.h"
 #include "compat.h"
 
+void fprint_escaped(FILE *f, const char *s)
+{
+    for (; *s; s++)
+    {
+        switch (*s)
+        {
+        case '\n':
+            fprintf(f, "\\n");
+            break;
+        case '\t':
+            fprintf(f, "\\t");
+            break;
+        case '\\':
+            fprintf(f, "\\\\");
+            break;
+        case '\"':
+            fprintf(f, "\\\"");
+            break;
+        default:
+            if ((unsigned char)*s < 32 || (unsigned char)*s > 126)
+                fprintf(f, "\\x%02x", (unsigned char)*s);
+            else
+                fputc(*s, f);
+        }
+    }
+}
+
 // #region Basic register allocator
 
 #define REG_NUM 4
@@ -69,6 +96,14 @@ static struct
 } Intlist[MAXINTS];
 static int Intslot = 0;
 
+#define MAXSTRS 1024
+static struct
+{
+    char *s;
+    int l;
+} Strlist[MAXSTRS];
+static int Strslot = 0;
+
 /// @brief Determine the offset of a large integer
 /// literal from the .L3 label. If the integer
 /// isn't in the list, add it.
@@ -103,6 +138,7 @@ void cgpreamble()
     freeall_registers();
     fputs(
         "\t.extern _printf\n" // `.extern _printf`
+        "\t.extern _write\n"
         "\n"
         "\t.cstring\n"
         "msgfmt:\n"
@@ -123,6 +159,27 @@ void cgpreamble()
         "\tadd\tsp, sp, #16\n"            // `add     sp, sp, #16` deallocate local stack
         "\tldp\tx29, x30, [sp], 16\n"     // `ldp     x29, x30, [sp], 16` restore FP & LR; adjust SP back
         "\tret\n"                         // `ret` return to caller
+        // #endregion
+        "\n"
+        // #region Define function `printchar`
+        "\t.text\n"
+        "\t.global printchar\n"
+        "printchar:\n"
+        "\tstp\tx29, x30, [sp, -16]!\n"
+        "\tmov\tx29, sp\n"
+        "\tand\tw0, w0, #0x7f\n" // x & 0x7f → mask character
+        "\tsub\tsp, sp, #16\n"   // allocate 16 bytes on stack
+        "\tstrb\tw0, [sp]\n"     // store character byte
+        "\tmov\tx0, #1\n"        // fd = 1 (stdout)
+        "\tmov\tx1, sp\n"          // buffer = &char
+        "\tmov\tx2, #1\n"        // count = 1
+        /// @note `putc` needs pointer to `STDOUT` Apple’s libc hides it as an internal weak reference,
+        /// meaning it doesn’t appear in the dynamic symbol table. So we use system call `write`, which
+        /// accepts file descriptor directly.
+        "\tbl\t_write\n"       // write(fd, &char, 1)
+        "\tadd\tsp, sp, #16\n" // deallocate stack
+        "\tldp\tx29, x30, [sp], 16\n"
+        "\tret\n"
         // #endregion
         "\n",
         Outfile);
@@ -218,12 +275,18 @@ void cgpostamble()
     // #region
 
     // #region Print out the string literals
-    // fputs(
-    //     "\n"
-    //     "\t.section __TEXT,__cstring\n"
-    //     "msgfmt:\n"
-    //     "\t.asciz \"%d\\n\"",
-    //     Outfile);
+    fprintf(Outfile, "\t.section __TEXT,__cstring\n");
+    for (int i = 0; i < Strslot; i++)
+    {
+        int lidx = Strlist[i].l;
+        fprintf(Outfile,
+                "__strconst_%d:\n"
+                "\t.asciz \"",
+                lidx);
+        fprint_escaped(Outfile, Strlist[i].s);
+        fputs("\"\n", Outfile);
+    }
+    fputs("\n", Outfile);
     // #endregion
 }
 
@@ -327,6 +390,20 @@ int cgloadglob(int id)
     default:
         fatald("Bad type in cgloadglob:", Gsym[id].type);
     }
+    return r;
+}
+
+/// @brief Given the label number of a global string,
+/// load its address into a new register
+int cgloadglobstr(int l)
+{
+    // Get a new register
+    int r = alloc_register();
+    const char *r_name = reglist[r];
+    fprintf(Outfile,
+            "\tadrp\t%s, __strconst_%d@PAGE\n"
+            "\tadd\t%s, %s, __strconst_%d@PAGEOFF\n",
+            r_name, l, r_name, r_name, l);
     return r;
 }
 
@@ -485,6 +562,17 @@ void cgglobsym(int id)
             "\t.space %d\n"
             "\n",
             align, name, name, typesize * Gsym[id].size);
+}
+
+/// @brief Generate a global string and its start label
+void cgglobstr(int l, char *strvalue)
+{
+    if (Strslot == MAXSTRS)
+        fatal("Out of string slots in cgglobstr()");
+
+    int idx = Strslot++;
+    Strlist[idx].s = strdup(strvalue);
+    Strlist[idx].l = l;
 }
 
 // List of comparison instruction
