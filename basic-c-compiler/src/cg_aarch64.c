@@ -464,8 +464,17 @@ int cgprimsize(int type)
 /// @note Generate a global symbol
 void cgglobsym(int id)
 {
+    if (Gsym[id].stype == S_FUNCTION)
+        return;
+
     char *name = Gsym[id].name;
-    int typesize = genprimsize(Gsym[id].type);
+    int type = Gsym[id].type;
+
+    if (Gsym[id].stype == S_ARRAY)
+        if (ptrtype(type))
+            type = value_at(type);
+
+    int typesize = genprimsize(type);
     int align = log2(typesize);
 
     fprintf(Outfile,

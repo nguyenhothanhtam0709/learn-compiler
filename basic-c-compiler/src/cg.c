@@ -380,8 +380,12 @@ int cgprimsize(int type)
 /// @brief Generate a global symbol
 void cgglobsym(int id)
 {
+    if (Gsym[id].stype == S_FUNCTION)
+        return;
+
     // Get the size of the type
-    int typesize = genprimsize(Gsym[id].type);
+    int type = Gsym[id].type;
+    int typesize;
 
     // #region Old way to define global variable
     /// @note
@@ -409,6 +413,12 @@ void cgglobsym(int id)
     // #endregion
 
     /// @note Define global variable like below to ensure the adjacency
+
+    if (Gsym[id].stype == S_ARRAY)
+        if (ptrtype(type))
+            type = value_at(type);
+
+    typesize = genprimsize(type);
 
     // Generate the global identity and the label
     fprintf(Outfile, "\t.data\n"
