@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include "compat.h"
 
 /// @brief Generate and return a new label number
 int genlabel(void)

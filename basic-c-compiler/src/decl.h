@@ -1,6 +1,8 @@
 #ifndef C_DECL_H
 #define C_DECL_H
 
+#include "compat.h"
+
 void reject_token(struct token *t);
 int scan(struct token *t);
 

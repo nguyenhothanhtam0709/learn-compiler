@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+#include "compat.h"
 
 // #region Basic register allocator
 
