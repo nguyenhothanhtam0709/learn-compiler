@@ -171,7 +171,7 @@ void cgpreamble()
         "\tsub\tsp, sp, #16\n"   // allocate 16 bytes on stack
         "\tstrb\tw0, [sp]\n"     // store character byte
         "\tmov\tx0, #1\n"        // fd = 1 (stdout)
-        "\tmov\tx1, sp\n"          // buffer = &char
+        "\tmov\tx1, sp\n"        // buffer = &char
         "\tmov\tx2, #1\n"        // count = 1
         /// @note `putc` needs pointer to `STDOUT` Apple’s libc hides it as an internal weak reference,
         /// meaning it doesn’t appear in the dynamic symbol table. So we use system call `write`, which
@@ -363,8 +363,10 @@ static void load_var_symbol(int id)
 }
 
 /// @brief Load a value from a variable into a register.
-/// Return the number of the register
-int cgloadglob(int id)
+/// Return the number of the register. If the
+/// operation is pre- or post-increment/decrement,
+/// also perform this action.
+int cgloadglob(int id, int op)
 {
     // Get a new register
     int r = alloc_register();
@@ -376,6 +378,10 @@ int cgloadglob(int id)
     switch (Gsym[id].type)
     {
     case P_CHAR:
+        if (op == A_PREINC)
+            fprintf(Outfile, "\tincb\t%s(\%%rip)\n", Gsym[id].name);
+        else if (op == A_PREDEC)
+            fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", Gsym[id].name);
         fprintf(Outfile, "\tldrb\t%s, [x3]\n", dreglist[r]);
         break;
     case P_INT:
@@ -469,6 +475,82 @@ __deprecated void cgprintint(int r)
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[r]);
     fprintf(Outfile, "\tbl\tprintint\n");
     free_register(r);
+}
+
+int cgand(int r1, int r2)
+{
+    /// @note `AND` operator and set flags
+    fprintf(Outfile, "\tands\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
+    free_register(r1);
+    return r2;
+}
+
+int cgor(int r1, int r2)
+{
+    /// @note `OR` operator and set flags
+    fprintf(Outfile, "\torrs\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
+    free_register(r1);
+    return r2;
+}
+
+int cgxor(int r1, int r2)
+{
+    /// @note `XOR` operator and set flags
+    fprintf(Outfile, "\teors\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
+    free_register(r1);
+    return r2;
+}
+
+int cgshl(int r1, int r2)
+{
+    /// @note `lsl r1, r1, r2` -> `r1 = r1 << (r2 & 0x3F)`
+    fprintf(Outfile, "\tlsl\t%s, %s, %s\n",
+            reglist[r1], reglist[r1], reglist[r2]);
+    free_register(r2);
+    return r1;
+}
+
+int cgshr(int r1, int r2)
+{
+    /// @note `lsr r1, r1, r2` -> `r1 = r1 >> (r2 & 0x3F)`
+    fprintf(Outfile, "\tlsr\t%s, %s, %s\n",
+            reglist[r1], reglist[r1], reglist[r2]);
+    free_register(r2);
+    return r1;
+}
+
+/// @brief Negate a register's value
+int cgnegate(int r)
+{
+    fprintf(Outfile, "\tneg\t%s, %s\n", reglist[r], reglist[r]);
+    return r;
+}
+
+/// @brief Invert a register's value
+int cginvert(int r)
+{
+    fprintf(Outfile, "\tmvn\t%s, %s\n", reglist[r], reglist[r]);
+    return r;
+}
+
+/// @brief Logically negate a register's value
+int cglognot(int r)
+{
+    fprintf(Outfile, "\tcmp\t%s, #0\n", reglist[r]);  // set NZCV flags based on x0
+    fprintf(Outfile, "\tcset\t%s, eq\n", reglist[r]); // x0 = 1 if equal (ZF=1), else 0
+    return r;
+}
+
+/// @brief Convert an integer value to a boolean value. Jump if
+/// it's an IF or WHILE operation
+int cgboolean(int r, int op, int label)
+{
+    fprintf(Outfile, "\tcmp\t%s, #0\n", reglist[r]);
+    if (op == A_IF || op == A_WHILE)
+        fprintf(Outfile, "\tbeq\tL%d\n", label);
+    else
+        fprintf(Outfile, "\tcset\t%s, ne\n", reglist[r]);
+    return r;
 }
 
 /// @brief Call a function with one argument from the given register

@@ -336,6 +336,7 @@ __deprecated void cgprintint(int r)
 
 int cgand(int r1, int r2)
 {
+    /// @note `andq` bitwise AND on 64-bit operands. It sets flags (ZF, SF, PF, clears OF and CF).
     fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
     return r2;
@@ -343,6 +344,7 @@ int cgand(int r1, int r2)
 
 int cgor(int r1, int r2)
 {
+    /// @note `orq` bitwise OR on 64-bit operands. It sets flags (ZF, SF, PF, clears OF and CF).
     fprintf(Outfile, "\torq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
     return r2;
@@ -350,6 +352,7 @@ int cgor(int r1, int r2)
 
 int cgxor(int r1, int r2)
 {
+    /// @note `xorq` bitwise XOR on 64-bit operands. It sets flags (ZF, SF, PF, clears OF and CF).
     fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r1], reglist[r2]);
     free_register(r1);
     return r2;
@@ -357,16 +360,16 @@ int cgxor(int r1, int r2)
 
 int cgshl(int r1, int r2)
 {
-    fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
-    fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
+    fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]); // Move shift count into the `CL` register (required by x86 variable-shift instructions).
+    fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);  // Shift %r1 left by the value in `CL`.
     free_register(r2);
     return r1;
 }
 
 int cgshr(int r1, int r2)
 {
-    fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
-    fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
+    fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]); // Move shift count into the `CL` register (required by x86 variable-shift instructions).
+    fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);  // Shift %r1 right by the value in `CL`.
     free_register(r2);
     return r1;
 }
@@ -374,6 +377,7 @@ int cgshr(int r1, int r2)
 /// @brief Negate a register's value
 int cgnegate(int r)
 {
+    /// @note Negative r and update flags.
     fprintf(Outfile, "\tnegq\t%s\n", reglist[r]);
     return r;
 }
@@ -388,9 +392,9 @@ int cginvert(int r)
 /// @brief Logically negate a register's value
 int cglognot(int r)
 {
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
-    fprintf(Outfile, "\tsete\t%s\n", breglist[r]);
-    fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);    // `test %r, %r` -> set flags based on %r == 0
+    fprintf(Outfile, "\tsete\t%s\n", breglist[r]);                   // `sete %r8b` -> r8b = 1 if ZF=1 (%r==0), else 0
+    fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]); // `movzbq %r8b, %r` -> zero-extend %r8b into %r
     return r;
 }
 
@@ -398,13 +402,13 @@ int cglognot(int r)
 /// it's an IF or WHILE operation
 int cgboolean(int r, int op, int label)
 {
-    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
+    fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]); // `test %r, %r`
     if (op == A_IF || op == A_WHILE)
-        fprintf(Outfile, "\tje\tL%d\n", label);
+        fprintf(Outfile, "\tje\tL%d\n", label); // `je L` -> jump if false
     else
     {
-        fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
-        fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+        fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);                  // `setnz %r8b` -> %r8b = 1 if non-zero, else 0
+        fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]); // `movzbq %r8b, %r` -> zero-extend %r8b → %r
     }
     return r;
 }
