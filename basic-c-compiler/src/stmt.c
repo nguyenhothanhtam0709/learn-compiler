@@ -8,9 +8,14 @@
 
 static struct ASTnode *single_statement(void);
 
-/// @brief Parse an IF statement including
-/// any optional ELSE clause
-/// and return its AST
+/// @brief // if_statement: if_head
+///      |        if_head 'else' compound_statement
+///      ;
+///
+/// if_head: 'if' '(' true_false_expression ')' compound_statement  ;
+///
+/// Parse an IF statement including any
+/// optional ELSE clause and return its AST
 struct ASTnode *if_statement(void)
 {
     struct ASTnode *condAST, *trueAST, *falseAST = NULL;
@@ -20,13 +25,13 @@ struct ASTnode *if_statement(void)
     lparen();
 
     // Parse the following expression
-    // and the ')' following. Ensure
+    // and the ')' following. Force a
+    // non-comparison to be boolean
     // the tree's operation is a comparison.
     condAST = binexpr(0);
-
     /// @note Only support for A_EQ, A_NE, A_LT, A_GT, A_LE and A_GE
     if (condAST->op < A_EQ || condAST->op > A_GE)
-        fatal("Bad comparison operator");
+        condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
     rparen();
 
     // Get the AST for the compound statement
@@ -56,11 +61,12 @@ struct ASTnode *while_statement(void)
     lparen();
 
     // Parse the following expression
-    // and the ')' following. Ensure
+    // and the ')' following. Force a
+    // non-comparison to be boolean
     // the tree's operation is a comparison.
     condAST = binexpr(0);
     if (condAST->op < A_EQ || condAST->op > A_GE)
-        fatal("Bad comparison operator");
+        condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
     rparen();
 
     // Get the AST for the compound statement
@@ -93,10 +99,12 @@ static struct ASTnode *for_statement(void)
     preopAST = single_statement();
     semi();
 
-    // Get the condition and the ';'
+    // Get the condition and the ';'.
+    // Force a non-comparison to be boolean
+    // the tree's operation is a comparison.
     condAST = binexpr(0);
     if (condAST->op < A_EQ || condAST->op > A_GE)
-        fatal("Bad comparison operator");
+        condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
     semi();
 
     // Get the post_op statement and the ')'

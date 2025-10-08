@@ -10,24 +10,44 @@
 enum
 {
     T_EOF,
-    // #region Operators
+    // #region Binary operators
     T_ASSIGN, // `=`
-    T_PLUS,   // `+`
-    T_MINUS,  // `-`
-    T_STAR,   // `*`
-    T_SLASH,  // `/`
+    T_LOGOR,  // `||`
+    T_LOGAND, // `&&`
+    T_OR,     // `|`
+    T_XOR,    // `^`
+    T_AMPER,
     T_EQ,     // `==`
     T_NE,     // `!=`
     T_LT,     // `<`
     T_GT,     // `>`
     T_LE,     // `<=`
     T_GE,     // `>=`
+    T_LSHIFT, // `<<`
+    T_RSHIFT, // `>>`
+    T_PLUS,   // `+`
+    T_MINUS,  // `-`
+    T_STAR,   // `*`
+    T_SLASH,  // `/`
     // #endregion
-    // #region Types
+    // #region Other operatos
+    T_INC,    // `++`
+    T_DEC,    // `--`
+    T_INVERT, // `~`
+    T_LOGNOT, // `!`
+    // #endregion
+    // #region Keywords
     T_VOID, // `void`
     T_CHAR, // `char`
     T_INT,  // `int`
     T_LONG, // `long`
+    // #endregion
+    // #region Other keywords
+    T_IF,     // `if`
+    T_ELSE,   // `else`
+    T_WHILE,  // `while`
+    T_FOR,    // `for`
+    T_RETURN, // `return`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -38,18 +58,9 @@ enum
     T_RBRACE,
     T_LPAREN,
     T_RPAREN,
-    T_AMPER,
     T_LBRACKET,
     T_RBRACKET,
-    T_LOGAND,
     T_COMMA,
-    // #endregion
-    // #region Other keywords
-    T_IF,     // `if`
-    T_ELSE,   // `else`
-    T_WHILE,  // `while`
-    T_FOR,    // `for`
-    T_RETURN, // `return`
     // #endregion
 };
 
@@ -63,16 +74,23 @@ struct token
 enum
 {
     A_ASSIGN = 1,
-    A_ADD,
-    A_SUBTRACT,
-    A_MULTIPLY,
-    A_DIVIDE,
+    A_LOGOR,
+    A_LOGAND,
+    A_OR,
+    A_XOR,
+    A_AND,
     A_EQ,
     A_NE,
     A_LT,
     A_GT,
     A_LE,
     A_GE,
+    A_LSHIFT,
+    A_RSHIFT,
+    A_ADD,
+    A_SUBTRACT,
+    A_MULTIPLY,
+    A_DIVIDE,
     A_INTLIT, // Integer literal
     A_STRLIT, // String literal
     A_IDENT,
@@ -86,6 +104,14 @@ enum
     A_DEREF, // Dereference the pointer in the child node
     A_ADDR,  // Get the address of the identifier in this node
     A_SCALE,
+    A_PREINC,
+    A_PREDEC,
+    A_POSTINC,
+    A_POSTDEC,
+    A_NEGATE,
+    A_INVERT,
+    A_LOGNOT,
+    A_TOBOOL
 };
 
 /// @brief Primitive type

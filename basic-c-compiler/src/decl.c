@@ -158,11 +158,10 @@ void global_declarations(void)
                 dumpAST(tree, NOLABEL, 0);
                 fprintf(stdout, "\n\n");
             }
-            genAST(tree, NOREG, 0);
+            genAST(tree, NOLABEL, 0);
         }
         else
         {
-
             // Parse the global variable declaration
             var_declaration(type);
         }
