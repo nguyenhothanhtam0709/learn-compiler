@@ -371,28 +371,88 @@ int cgloadglob(int id, int op)
     // Get a new register
     int r = alloc_register();
 
+    /// @note AArch64 doesn’t have a single instruction that increments memory directly (no incb [addr]).
+    /// Instead, we must:
+    /// - Load the byte
+    /// - Increment or decrement it
+    /// - Store it back.
+
     // Get the offset to the variable
     load_var_symbol(id);
-
     // Print out the code to initialise it
     switch (Gsym[id].type)
     {
     case P_CHAR:
-        if (op == A_PREINC)
-            fprintf(Outfile, "\tincb\t%s(\%%rip)\n", Gsym[id].name);
-        else if (op == A_PREDEC)
-            fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", Gsym[id].name);
+    {
+        /// @note Register for computation
+        const char *computeR = "w4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = dreglist[r];
+
+        /// @note Load value into allocated register `%r` for result
         fprintf(Outfile, "\tldrb\t%s, [x3]\n", dreglist[r]);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldrb\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+        /// @note Store value back to global variable
+        fprintf(Outfile, "\tstrb\t%s, [x3]\n", computeR);
+
         break;
+    }
     case P_INT:
+    {
+        /// @note Register for computation
+        const char *computeR = "w4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = dreglist[r];
+
+        /// @note Load value into allocated register `%r` for result
         fprintf(Outfile, "\tldr\t%s, [x3]\n", dreglist[r]);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+        /// @note Store value back to global variable
+        fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
+
         break;
+    }
     case P_LONG:
     case P_CHARPTR:
     case P_INTPTR:
     case P_LONGPTR:
+    {
+        /// @note Register for computation
+        const char *computeR = "x4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = reglist[r];
+
+        /// @note Load value into allocated register `%r` for result
         fprintf(Outfile, "\tldr\t%s, [x3]\n", reglist[r]);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+        /// @note Store value back to global variable
+        fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
         break;
+    }
     default:
         fatald("Bad type in cgloadglob:", Gsym[id].type);
     }
