@@ -562,8 +562,12 @@ int cgand(int r1, int r2)
 
 int cgor(int r1, int r2)
 {
-    /// @note `OR` operator and set flags
-    fprintf(Outfile, "\torrs\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
+    /// @note `OR` operator
+    fprintf(Outfile,
+            "\torr\t%s, %s, %s\n"
+            "\tcmp\t%s, #0\n",
+            reglist[r2], reglist[r1], reglist[r2], reglist[r2]);
+
     free_register(r1);
     return r2;
 }
@@ -571,7 +575,10 @@ int cgor(int r1, int r2)
 int cgxor(int r1, int r2)
 {
     /// @note `XOR` operator and set flags
-    fprintf(Outfile, "\teors\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
+    fprintf(Outfile,
+            "\teor\t%s, %s, %s\n"
+            "\tcmp\t%s, #0\n",
+            reglist[r2], reglist[r1], reglist[r2], reglist[r2]);
     free_register(r1);
     return r2;
 }
