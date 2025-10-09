@@ -400,8 +400,13 @@ int cgloadglob(int id, int op)
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
         else // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
-        /// @note Store value back to global variable
-        fprintf(Outfile, "\tstrb\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstrb\t%s, [x3]\n", computeR);
 
         break;
     }
@@ -423,8 +428,13 @@ int cgloadglob(int id, int op)
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
         else // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
-        /// @note Store value back to global variable
-        fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
 
         break;
     }
@@ -449,8 +459,13 @@ int cgloadglob(int id, int op)
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
         else // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
-        /// @note Store value back to global variable
-        fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
         break;
     }
     default:
