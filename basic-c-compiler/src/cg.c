@@ -197,7 +197,7 @@ void cgfuncpostamble(int id)
     fprintf(
         Outfile,
         "\taddq\t$%d,%%rsp\n"
-        "\tpopq	%rbp\n" // `popq %rbp`      → restore old base pointer (undo function prologue)
+        "\tpopq	%%rbp\n" // `popq %rbp`      → restore old base pointer (undo function prologue)
         "\tret\n",      // `ret`            → return to caller
         stackOffset);
 }
