@@ -213,10 +213,10 @@ void cgpostamble()
     // fprintf(Outfile, "\t.section __DATA,__bss\n");
     // // fprintf(Outfile, "\t.section __DATA,__data\n");
     // for (int i = 0; i < Globs; i++)
-    //     if (Gsym[i].stype == S_VARIABLE)
+    //     if (Symtable[i].stype == S_VARIABLE)
     //     {
-    //         char *name = Gsym[i].name;
-    //         int typesize = genprimsize(Gsym[i].type);
+    //         char *name = Symtable[i].name;
+    //         int typesize = genprimsize(Symtable[i].type);
     //         int align = log2(typesize);
 
     //         fprintf(Outfile,
@@ -293,7 +293,7 @@ void cgpostamble()
 // Print out a function preamble
 void cgfuncpreamble(int id)
 {
-    char *name = Gsym[id].name;
+    char *name = Symtable[id].name;
     if (!strcmp(name, "main"))
         name = strdup("_main");
     fprintf(Outfile,
@@ -311,7 +311,7 @@ void cgfuncpreamble(int id)
 /// @brief Print out the assembly postamble
 void cgfuncpostamble(int id)
 {
-    cglabel(Gsym[id].endlabel); // Mark <endlabel>
+    cglabel(Symtable[id].endlabel); // Mark <endlabel>
     fputs(
         "\tldp\tx29, x30, [sp], 16\n" // `ldp     x29, x30, [sp], 16` restore FP & LR; adjust SP back
         "\tret\n"                     // `ret` return to caller
@@ -359,7 +359,7 @@ static void load_global_var_addr(const char *var_name, const char *r_name)
 /// @brief Generate code to load global variable addr to `x3`
 static void load_var_symbol(int id)
 {
-    load_global_var_addr(Gsym[id].name, "x3");
+    load_global_var_addr(Symtable[id].name, "x3");
 }
 
 /// @brief Load a value from a variable into a register.
@@ -380,7 +380,7 @@ int cgloadglob(int id, int op)
     // Get the offset to the variable
     load_var_symbol(id);
     // Print out the code to initialise it
-    switch (Gsym[id].type)
+    switch (Symtable[id].type)
     {
     case P_CHAR:
     {
@@ -469,7 +469,7 @@ int cgloadglob(int id, int op)
         break;
     }
     default:
-        fatald("Bad type in cgloadglob:", Gsym[id].type);
+        fatald("Bad type in cgloadglob:", Symtable[id].type);
     }
     return r;
 }
@@ -640,7 +640,7 @@ int cgboolean(int r, int op, int label)
 int cgcall(int r, int id)
 {
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[r]);
-    fprintf(Outfile, "\tbl\t%s\n", Gsym[id].name);
+    fprintf(Outfile, "\tbl\t%s\n", Symtable[id].name);
     fprintf(Outfile, "\tmov\t%s, x0\n", reglist[r]);
     return r;
 }
@@ -658,7 +658,7 @@ int cgstorglob(int r, int id)
     // Get the offset to the variable
     load_var_symbol(id);
 
-    switch (Gsym[id].type)
+    switch (Symtable[id].type)
     {
     case P_CHAR:
         fprintf(Outfile, "\tstrb\t%s, [x3]\n", dreglist[r]); // 8-bit store
@@ -673,7 +673,7 @@ int cgstorglob(int r, int id)
         fprintf(Outfile, "\tstr\t%s, [x3]\n", reglist[r]); // 64-bit store (use xX)
         break;
     default:
-        fatald("Bad type in cgstorglob:", Gsym[id].type);
+        fatald("Bad type in cgstorglob:", Symtable[id].type);
     }
 
     return r;
@@ -705,13 +705,13 @@ int cgprimsize(int type)
 /// @note Generate a global symbol
 void cgglobsym(int id)
 {
-    if (Gsym[id].stype == S_FUNCTION)
+    if (Symtable[id].stype == S_FUNCTION)
         return;
 
-    char *name = Gsym[id].name;
-    int type = Gsym[id].type;
+    char *name = Symtable[id].name;
+    int type = Symtable[id].type;
 
-    if (Gsym[id].stype == S_ARRAY)
+    if (Symtable[id].stype == S_ARRAY)
         if (ptrtype(type))
             type = value_at(type);
 
@@ -725,7 +725,7 @@ void cgglobsym(int id)
             "__global_%s:\n"
             "\t.space %d\n"
             "\n",
-            align, name, name, typesize * Gsym[id].size);
+            align, name, name, typesize * Symtable[id].size);
 }
 
 /// @brief Generate a global string and its start label
@@ -829,7 +829,7 @@ void cgreturn(int reg, int id)
 {
 
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[reg]);
-    cgjump(Gsym[id].endlabel);
+    cgjump(Symtable[id].endlabel);
 }
 
 /// @brief Generate code to load the address of a global
@@ -839,7 +839,7 @@ int cgaddress(int id)
     // Get a new register
     int r = alloc_register();
     // Get the offset to the variable
-    load_global_var_addr(Gsym[id].name, reglist[r]);
+    load_global_var_addr(Symtable[id].name, reglist[r]);
 
     return r;
 }
