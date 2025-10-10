@@ -312,5 +312,5 @@ void genresetlocals(void)
 
 int gengetlocaloffset(int type, int isparam)
 {
-    return (cggetlocaloffset(type, isparam));
+    return cggetlocaloffset(type, isparam);
 }
