@@ -17,6 +17,8 @@ extern_ int Putback;
 extern_ int Functionid;
 /// @brief Position of next free global symbol slot
 extern_ int Globs;
+/// @brief Position of next free local symbol slot
+extern_ int Locls;
 /// @brief Input file
 extern_ FILE *Infile;
 /// @brief Output file
@@ -26,7 +28,13 @@ extern_ struct token Token;
 /// @brief Last identifier scanned
 extern_ char Text[TEXTLEN + 1];
 /// @brief Global symbol table
-extern_ struct symtable Gsym[NSYMBOLS];
+///
+/// @note Symbol table layout:
+/// 0xxxx......................................xxxxxxxxxxxxNSYMBOLS-1
+///     ^                                    ^
+///     |                                    |
+///   Globs                                Locls
+extern_ struct symtable Symtable[NSYMBOLS];
 
 extern_ int O_dumpAST;
 

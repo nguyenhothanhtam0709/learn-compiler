@@ -170,6 +170,13 @@ enum
     S_ARRAY
 };
 
+/// @brief Storage classes
+enum
+{
+    C_GLOBAL = 1, // Globally visible symbol
+    C_LOCAL       // Locally visible symbol
+};
+
 /// @brief Symbol table entry structure
 struct symtable
 {
@@ -179,10 +186,14 @@ struct symtable
     int type;
     /// @brief Structural type for the symbol
     int stype;
+    /// @brief Storage class for the symbol
+    int class;
     /// @brief For S_FUNCTIONs, the end label
     int endlabel;
     /// @brief Number of elements in the symbol
     int size;
+    /// @brief For locals,the negative offset from the stack base pointer
+    int posn;
 };
 
 #endif

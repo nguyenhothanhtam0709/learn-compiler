@@ -98,7 +98,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "\n\n");
         return;
     case A_FUNCTION:
-        fprintf(stdout, "A_FUNCTION %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_FUNCTION %s\n", Symtable[n->v.id].name);
         return;
     case A_ADD:
         fprintf(stdout, "A_ADD\n");
@@ -135,9 +135,9 @@ void dumpAST(struct ASTnode *n, int label, int level)
         return;
     case A_IDENT:
         if (n->rvalue)
-            fprintf(stdout, "A_IDENT rval %s\n", Gsym[n->v.id].name);
+            fprintf(stdout, "A_IDENT rval %s\n", Symtable[n->v.id].name);
         else
-            fprintf(stdout, "A_IDENT %s\n", Gsym[n->v.id].name);
+            fprintf(stdout, "A_IDENT %s\n", Symtable[n->v.id].name);
         return;
     case A_ASSIGN:
         fprintf(stdout, "A_ASSIGN\n");
@@ -149,10 +149,10 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "A_RETURN\n");
         return;
     case A_FUNCCALL:
-        fprintf(stdout, "A_FUNCCALL %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_FUNCCALL %s\n", Symtable[n->v.id].name);
         return;
     case A_ADDR:
-        fprintf(stdout, "A_ADDR %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_ADDR %s\n", Symtable[n->v.id].name);
         return;
     case A_DEREF:
         if (n->rvalue)
@@ -164,10 +164,10 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "A_SCALE %d\n", n->v.size);
         return;
     case A_PREINC:
-        fprintf(stdout, "A_PREINC %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_PREINC %s\n", Symtable[n->v.id].name);
         return;
     case A_PREDEC:
-        fprintf(stdout, "A_PREDEC %s\n", Gsym[n->v.id].name);
+        fprintf(stdout, "A_PREDEC %s\n", Symtable[n->v.id].name);
         return;
     case A_POSTINC:
         fprintf(stdout, "A_POSTINC\n");

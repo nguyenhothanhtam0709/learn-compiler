@@ -51,7 +51,7 @@ int parse_type(void)
 /// Parse the declaration of a scalar variable or an array
 /// with a given size.
 /// The identifier has been scanned & we have the type
-void var_declaration(int type)
+void var_declaration(int type, int islocal)
 {
     int id;
 
@@ -67,8 +67,10 @@ void var_declaration(int type)
         {
             // Add this as a known array and generate its space in assembly.
             // We treat the array as a pointer to its elements' type
-            id = addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
-            genglobsym(id);
+            if (islocal)
+                addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+            else
+                addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
         }
 
         // ensure we have a following ']'
@@ -79,8 +81,10 @@ void var_declaration(int type)
     {
         // Add it as a known identifier
         // and generate its space in assembly
-        id = addglob(Text, type, S_VARIABLE, 0, 1);
-        genglobsym(id);
+        if (islocal)
+            addlocl(Text, type, S_VARIABLE, 0, 1);
+        else
+            addglob(Text, type, S_VARIABLE, 0, 1);
     }
 
     // Get the trailing semicolon
@@ -105,6 +109,8 @@ struct ASTnode *function_declaration(int type)
     endlabel = genlabel();
     nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
     Functionid = nameslot;
+
+    genresetlocals(); // Reset position of new locals
 
     // Scan in the parentheses
     lparen();
@@ -163,7 +169,7 @@ void global_declarations(void)
         else
         {
             // Parse the global variable declaration
-            var_declaration(type);
+            var_declaration(type, 0);
         }
 
         // Stop when we have reached EOF
