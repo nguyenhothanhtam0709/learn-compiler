@@ -38,28 +38,47 @@ void fprint_escaped(FILE *f, const char *s)
     }
 }
 
+/// @brief Position of next local variable relative to stack base pointer.
+/// We store the offset as positive to make aligning the stack pointer easier
+static int localOffset;
+static int stackOffset;
+
+/// @brief Reset the position of new local variables when parsing a new function
+void cgresetlocals(void)
+{
+    localOffset = 0;
+}
+
+/// @brief Get the position of the next local variable.
+/// Use the isparam flag to allocate a parameter (not yet XXX).
+int cggetlocaloffset(int type, int isparam)
+{
+    return -(localOffset += cgprimsize(type));
+}
+
 // #region Basic register allocator
 
-#define REG_NUM 4
+#define NUMFREEREGS 4
 
 /// @brief List of available registers and their names
-static int freereg[REG_NUM];
+static int freereg[NUMFREEREGS];
 /// @brief List of registers used by compiler
-static char *reglist[REG_NUM] = {"x9", "x10", "x11", "x12"};
+static char *reglist[] = {"x9", "x10", "x11", "x12"};
 /// @brief List of registers that are lower 32-bit version of each register of `reglist`
-static char *dreglist[REG_NUM] = {"w9", "w10", "w11", "w12"};
+static char *dreglist[] = {"w9", "w10", "w11", "w12"};
 
 /// @brief Set all registers as available
 void freeall_registers(void)
 {
-    freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
+    for (int i = 0; i < NUMFREEREGS; i++)
+        freereg[i] = 1;
 }
 
 /// @brief Allocate a free register. Return the number of
 /// the register. Die if no available registers.
 static int alloc_register(void)
 {
-    for (int i = 0; i < REG_NUM; i++)
+    for (int i = 0; i < NUMFREEREGS; i++)
         if (freereg[i])
         {
             freereg[i] = 0;
@@ -296,27 +315,31 @@ void cgfuncpreamble(int id)
     char *name = Symtable[id].name;
     if (!strcmp(name, "main"))
         name = strdup("_main");
+    /// @note Keep stack 16-bytes align as requirement of AArch64 ABI
+    stackOffset = (localOffset + 15) & ~15;
     fprintf(Outfile,
             "\t.text\n"
             "\t.global\t%s\n"               // `.global <name>`             → Declare <name> as a global symbol, visible to the linker
             "%s:\n"                         // `<name>:`                   → Define the label <name> (entry point of the function)
             "\tstp\tx29, x30, [sp, -16]!\n" // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
-            "\tmov\tx29, sp\n",             // `mov     x29, sp` set new frame pointer
+            "\tmov\tx29, sp\n"              // `mov     x29, sp` set new frame pointer
+            "\tsub\tsp, sp, #%d\n",
             // "\tadd\tfp, sp, #4\n"           // `add   fp, sp, #4`          → Add sp+4 to the stack pointer (set up the new frame pointer)
             // "\tsub\tsp, sp, #8\n"           // `sub   sp, sp, #8`          → Lower the stack pointer by 8
             // "\tstr\tr0, [fp, #-8]\n",       // `str   r0, [fp, #-8]`       → Store the first argument (in r0) into the local variable slot (ARM passes first arg in r0; this stores it into the local frame at offset -8 from fp).
-            name, name);
+            name, name, stackOffset);
 }
 
 /// @brief Print out the assembly postamble
 void cgfuncpostamble(int id)
 {
     cglabel(Symtable[id].endlabel); // Mark <endlabel>
-    fputs(
-        "\tldp\tx29, x30, [sp], 16\n" // `ldp     x29, x30, [sp], 16` restore FP & LR; adjust SP back
-        "\tret\n"                     // `ret` return to caller
-        "\n",
-        Outfile);
+    fprintf(Outfile,
+            "\tadd\tsp, sp, #%d\n"
+            "\tldp\tx29, x30, [sp], 16\n" // `ldp     x29, x30, [sp], 16` restore FP & LR; adjust SP back
+            "\tret\n"                     // `ret` return to caller
+            "\n",
+            stackOffset);
 }
 
 /// @brief Load an integer literal value into a register.
@@ -466,6 +489,111 @@ int cgloadglob(int id, int op)
             A_POSTINC == op)
             /// @note Store value back to global variable
             fprintf(Outfile, "\tstr\t%s, [x3]\n", computeR);
+        break;
+    }
+    default:
+        fatald("Bad type in cgloadglob:", Symtable[id].type);
+    }
+    return r;
+}
+
+/// @brief Load a value from a local variable into a register.
+/// Return the number of the register. If the
+/// operation is pre- or post-increment/decrement,
+/// also perform this action.
+int cgloadlocal(int id, int op)
+{
+    // Get a new register
+    int r = alloc_register();
+    /// @note Stack offset
+    int posn = Symtable[id].posn;
+
+    switch (Symtable[id].type)
+    {
+    case P_CHAR:
+    {
+        /// @note Register for computation
+        const char *computeR = "w4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = dreglist[r];
+
+        /// @note Load value into allocated register `%r` for result
+        fprintf(Outfile, "\tldrb\t%s, [x29, #%d]\n", dreglist[r], posn);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldrb\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstrb\t%s, [x29, #%d]\n", computeR, posn);
+
+        break;
+    }
+    case P_INT:
+    {
+        /// @note Register for computation
+        const char *computeR = "w4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = dreglist[r];
+
+        /// @note Load value into allocated register `%r` for result
+        fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", dreglist[r], posn);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", computeR, posn);
+
+        break;
+    }
+    case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
+    {
+        /// @note Register for computation
+        const char *computeR = "x4";
+        if (op == A_PREINC || op == A_PREDEC)
+            computeR = reglist[r];
+
+        /// @note Load value into allocated register `%r` for result
+        fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", reglist[r], posn);
+
+        if (A_POSTINC == op || A_POSTDEC == op)
+            /// @note Load value into temporary register for compute
+            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+
+        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+        else // A_PREDEC, A_POSTDEC
+            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+
+        if (A_PREINC == op ||
+            A_POSTINC == op ||
+            A_POSTDEC == op ||
+            A_POSTINC == op)
+            /// @note Store value back to global variable
+            fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", computeR, posn);
         break;
     }
     default:
@@ -679,6 +807,32 @@ int cgstorglob(int r, int id)
     return r;
 }
 
+/// @brief Store a register's value into a local variable
+int cgstorlocal(int r, int id)
+{
+    const int posn = Symtable[id].posn;
+
+    switch (Symtable[id].type)
+    {
+    case P_CHAR:
+        fprintf(Outfile, "\tstrb\t%s, [x29, #%d]\n", dreglist[r], posn); // 8-bit store
+        break;
+    case P_INT:
+        fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", dreglist[r], posn); // 32-bit store (use wX)
+        break;
+    case P_LONG:
+    case P_CHARPTR:
+    case P_INTPTR:
+    case P_LONGPTR:
+        fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", reglist[r], posn); // 64-bit store (use xX)
+        break;
+    default:
+        fatald("Bad type in cgstorglob:", Symtable[id].type);
+    }
+
+    return r;
+}
+
 /// @brief Array of type sizes in P_XXX order.
 /// 0 means no size.
 static int psize[] = {
@@ -832,14 +986,20 @@ void cgreturn(int reg, int id)
     cgjump(Symtable[id].endlabel);
 }
 
-/// @brief Generate code to load the address of a global
+/// @brief Generate code to load the address of an
 /// identifier into a variable. Return a new register
 int cgaddress(int id)
 {
     // Get a new register
     int r = alloc_register();
-    // Get the offset to the variable
-    load_global_var_addr(Symtable[id].name, reglist[r]);
+
+    if (Symtable[id].class == C_LOCAL)
+        fprintf(Outfile,
+                "\tadd\t%s, x29, #%d\n",
+                reglist[r], Symtable[id].posn);
+    else
+        // Get the offset to the variable
+        load_global_var_addr(Symtable[id].name, reglist[r]);
 
     return r;
 }
