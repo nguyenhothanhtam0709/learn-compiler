@@ -20,7 +20,7 @@ struct ASTnode *binexpr(int ptp);
 
 struct ASTnode *compound_statement(void);
 
-void var_declaration(int type, int islocal);
+void var_declaration(int type, int islocal, int isparam);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
@@ -41,8 +41,6 @@ void genglobsym(int id);
 int genglobstr(char *strvalue);
 int genprimsize(int type);
 void genreturn(int reg, int id);
-void genresetlocals(void);
-int gengetlocaloffset(int type, int isparam);
 
 void cgtextseg();
 void cgdataseg();
@@ -85,8 +83,6 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
-void cgresetlocals(void);
-int cggetlocaloffset(int type, int isparam);
 
 void match(int t, char *what);
 void semi(void);
@@ -104,6 +100,7 @@ int findglob(char *s);
 int findlocl(char *s);
 int findsymbol(char *s);
 int addglob(char *name, int type, int stype, int endlabel, int size);
-int addlocl(char *name, int type, int stype, int endlabel, int size);
+int addlocl(char *name, int type, int stype, int isparam, int size);
+void freeloclsyms(void);
 
 #endif

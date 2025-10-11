@@ -43,15 +43,8 @@ void fprint_escaped(FILE *f, const char *s)
 static int localOffset;
 static int stackOffset;
 
-/// @brief Reset the position of new local variables when parsing a new function
-void cgresetlocals(void)
-{
-    localOffset = 0;
-}
-
-/// @brief Get the position of the next local variable.
-/// Use the isparam flag to allocate a parameter (not yet XXX).
-int cggetlocaloffset(int type, int isparam)
+/// @brief Create the position of a new local variable.
+int newlocaloffset(int type)
 {
     return -(localOffset += cgprimsize(type));
 }
@@ -59,13 +52,19 @@ int cggetlocaloffset(int type, int isparam)
 // #region Basic register allocator
 
 #define NUMFREEREGS 4
+/// @brief Position of first parameter register
+#define FIRSTPARAMREG 11
 
 /// @brief List of available registers and their names
 static int freereg[NUMFREEREGS];
 /// @brief List of registers used by compiler
-static char *reglist[] = {"x9", "x10", "x11", "x12"};
+static char *reglist[] = {"x9", "x10", "x11", "x12",
+                          /// @note Registers for function call arguments
+                          "x7", "x6", "x5", "x4", "x3", "x2", "x1", "x0"};
 /// @brief List of registers that are lower 32-bit version of each register of `reglist`
-static char *dreglist[] = {"w9", "w10", "w11", "w12"};
+static char *dreglist[] = {"w9", "w10", "w11", "w12",
+                           /// @note Registers for function call arguments
+                           "w7", "w6", "w5", "w4", "w3", "w2", "w1", "w0"};
 
 /// @brief Set all registers as available
 void freeall_registers(void)
@@ -315,19 +314,66 @@ void cgfuncpreamble(int id)
     char *name = Symtable[id].name;
     if (!strcmp(name, "main"))
         name = strdup("_main");
-    /// @note Keep stack 16-bytes align as requirement of AArch64 ABI
-    stackOffset = (localOffset + 15) & ~15;
+
+    int i;
+    /// @note Any pushed params start at this stack offset
+    int paramOffset = 16;
+    /// @brief Index to the first param register in above reg lists
+    int paramReg = FIRSTPARAMREG;
+    localOffset = 0;
+
     fprintf(Outfile,
             "\t.text\n"
             "\t.global\t%s\n"               // `.global <name>`             → Declare <name> as a global symbol, visible to the linker
             "%s:\n"                         // `<name>:`                   → Define the label <name> (entry point of the function)
             "\tstp\tx29, x30, [sp, -16]!\n" // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
-            "\tmov\tx29, sp\n"              // `mov     x29, sp` set new frame pointer
-            "\tsub\tsp, sp, #%d\n",
+            "\tmov\tx29, sp\n",             // `mov     x29, sp` set new frame pointer
             // "\tadd\tfp, sp, #4\n"           // `add   fp, sp, #4`          → Add sp+4 to the stack pointer (set up the new frame pointer)
             // "\tsub\tsp, sp, #8\n"           // `sub   sp, sp, #8`          → Lower the stack pointer by 8
             // "\tstr\tr0, [fp, #-8]\n",       // `str   r0, [fp, #-8]`       → Store the first argument (in r0) into the local variable slot (ARM passes first arg in r0; this stores it into the local frame at offset -8 from fp).
-            name, name, stackOffset);
+            name, name);
+
+    // Calculate offset of parameter before loading them from register into stack
+    for (i = NSYMBOLS - 1; (i > Locls) && (i >= NSYMBOLS - 8); i--)
+    {
+        if (Symtable[i].class != C_PARAM)
+            break;
+
+        Symtable[i].posn = newlocaloffset(Symtable[i].type);
+    }
+
+    // For the remainder, if they are a parameter then they are
+    // already on the stack. If only a local, make a stack position.
+    for (; i > Locls; i--)
+    {
+        if (Symtable[i].class == C_PARAM)
+        {
+            /// @note In AArch64 ABI, only the first 8 parameters of function are
+            /// allocated on the register, the rest of parameters will be allocated
+            /// on the stack of caller. Below code calculates stack offset of stack-allocated
+            /// parameter relative to `%rbp`
+            Symtable[i].posn = paramOffset;
+            paramOffset += 8;
+        }
+        else
+            Symtable[i].posn = newlocaloffset(Symtable[i].type);
+    }
+
+    /// @note Keep stack 16-bytes align as requirement of AArch64 ABI
+    stackOffset = (localOffset + 15) & ~15;
+    fprintf(Outfile,
+            "\tsub\tsp, sp, #%d\n",
+            stackOffset);
+
+    // Copy any in-register parameters to the stack
+    // Stop after no more than six parameter registers
+    for (int idx = NSYMBOLS - 1; (idx > Locls) && (idx >= NSYMBOLS - 8); idx--)
+    {
+        if (Symtable[idx].class != C_PARAM)
+            break;
+
+        cgstorlocal(paramReg--, idx);
+    }
 }
 
 /// @brief Print out the assembly postamble

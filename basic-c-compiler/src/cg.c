@@ -42,33 +42,33 @@ void cgdataseg()
 static int localOffset;
 static int stackOffset;
 
-/// @brief Reset the position of new local variables when parsing a new function
-void cgresetlocals(void)
-{
-    localOffset = 0;
-}
-
-/// @brief Get the position of the next local variable.
-/// Use the isparam flag to allocate a parameter (not yet XXX).
-int cggetlocaloffset(int type, int isparam)
+/// @brief Create the position of a new local variable.
+int newlocaloffset(int type)
 {
     // For now just decrement the offset by a minimum of 4 bytes
     // and allocate on the stack
     localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
-    // printf("Returning offset %d for type %d\n", localOffset, type);
     return -localOffset;
 }
 
 #define NUMFREEREGS 4
+/// @brief Position of first parameter register
+#define FIRSTPARAMREG 9
 
 /// @brief List of available registers and their names
 static int freereg[NUMFREEREGS];
 /// @brief List of registers used by compiler
-static char *reglist[] = {"%r8", "%r9", "%r10", "%r11"};
+static char *reglist[] = {"%r10", "%r11", "%r12", "%r13",
+                          /// @note Registers for function call arguments
+                          "%r9", "%r8", "%rcx", "%rdx", "%rsi", "%rdi"};
 /// @brief List of registers that are lower 8-bit version of each register of `reglist`
-static char *breglist[] = {"%r8b", "%r9b", "%r10b", "%r11b"};
+static char *breglist[] = {"%r10b", "%r11b", "%r12b", "%r13b",
+                           /// @note Registers for function call arguments
+                           "%r9b", "%r8b", "%cl", "%dl", "%sil", "%dil"};
 /// @brief List of registers that are lower 32-bit version of each register of `reglist`
-static char *dreglist[] = {"%r8d", "%r9d", "%r10d", "%r11d"};
+static char *dreglist[] = {"%r10d", "%r11d", "%r12d", "%r13d",
+                           /// @note Registers for function call arguments
+                           "%r9d", "%r8d", "%ecx", "%edx", "%esi", "%edi"};
 
 /// @brief Set all registers as available
 void freeall_registers(void)
@@ -172,24 +172,64 @@ void cgpostamble() {}
 // Print out a function preamble
 void cgfuncpreamble(int id)
 {
-    char *name = Symtable[id].name;
-    cgtextseg();
+    const char *name = Symtable[id].name;
+    int i;
+    /// @note Any pushed params start at this stack offset
+    int paramOffset = 16;
+    /// @brief Index to the first param register in above reg lists
+    int paramReg = FIRSTPARAMREG;
 
-    // Align the stack pointer to be a multiple of 16
-    // less than its previous value
-    /// @note According to the System V AMD64 ABI (used on Linux, macOS, BSD, etc.):
-    /// Before calling a function (e.g., via call), the stack pointer (%rsp) must be 16-byte aligned.
-    stackOffset = (localOffset + 15) & ~15;
-    // printf("preamble local %d stack %d\n", localOffset, stackOffset);
+    // Output in the text segment, reset local offset
+    cgtextseg();
+    localOffset = 0;
 
     fprintf(Outfile,
             "\t.globl\t%s\n"           // `.globl <name>`           → Declare <name> as a global symbol, visible to the linker
             "\t.type\t%s, @function\n" // `.type <name>, @function` → Mark <name> as a function symbol (for debuggers/linkers)
             "%s:\n"                    // `<name>:`                 → Define the label <name> (entry point of the function)
             "\tpushq\t%%rbp\n"         // `pushq %rbp`              → Save caller's base pointer on the stack
-            "\tmovq\t%%rsp, %%rbp\n"   // `movq %rsp, %rbp`         → Set up a new stack frame: rbp = current stack pointer
+            "\tmovq\t%%rsp, %%rbp\n",  // `movq %rsp, %rbp`         → Set up a new stack frame: rbp = current stack pointer
+            name, name, name);
+
+    // Copy any in-register parameters to the stack
+    // Stop after no more than six parameter registers
+    for (i = NSYMBOLS - 1; i > Locls; i--)
+    {
+        if (Symtable[i].class != C_PARAM)
+            break;
+
+        if (i < NSYMBOLS - 6)
+            break;
+
+        Symtable[i].posn = newlocaloffset(Symtable[i].type);
+        cgstorlocal(paramReg--, i);
+    }
+
+    // For the remainder, if they are a parameter then they are
+    // already on the stack. If only a local, make a stack position.
+    for (; i > Locls; i--)
+    {
+        if (Symtable[i].class == C_PARAM)
+        {
+            /// @note In x86-64 ABI, only the first 6 parameters of function are
+            /// allocated on the register, the rest of parameters will be allocated
+            /// on the stack of caller. Below code calculates stack offset of stack-allocated
+            /// parameter relative to `%rbp`
+            Symtable[i].posn = paramOffset;
+            paramOffset += 8;
+        }
+        else
+            Symtable[i].posn = newlocaloffset(Symtable[i].type);
+    }
+
+    // Align the stack pointer to be a multiple of 16
+    // less than its previous value
+    /// @note According to the System V AMD64 ABI (used on Linux, macOS, BSD, etc.):
+    /// Before calling a function (e.g., via call), the stack pointer (%rsp) must be 16-byte aligned.
+    stackOffset = (localOffset + 15) & ~15;
+    fprintf(Outfile,
             "\taddq\t$%d,%%rsp\n",
-            name, name, name, -stackOffset);
+            -stackOffset);
 }
 
 /// @brief Print out the assembly postamble

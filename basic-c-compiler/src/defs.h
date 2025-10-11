@@ -174,7 +174,8 @@ enum
 enum
 {
     C_GLOBAL = 1, // Globally visible symbol
-    C_LOCAL       // Locally visible symbol
+    C_LOCAL,      // Locally visible symbol
+    C_PARAM,      // Locally visible function parameter
 };
 
 /// @brief Symbol table entry structure
@@ -192,8 +193,11 @@ struct symtable
     int endlabel;
     /// @brief Number of elements in the symbol
     int size;
-    /// @brief For locals,the negative offset from the stack base pointer
+    /// @brief For locals, either the negative offset from the stack base pointer or register id
     int posn;
+/// @brief For functions, number of params.
+/// For structs, number of fields
+#define nelems posn
 };
 
 #endif
