@@ -177,6 +177,8 @@ void cgfuncpreamble(int id)
 
     // Align the stack pointer to be a multiple of 16
     // less than its previous value
+    /// @note According to the System V AMD64 ABI (used on Linux, macOS, BSD, etc.):
+    /// Before calling a function (e.g., via call), the stack pointer (%rsp) must be 16-byte aligned.
     stackOffset = (localOffset + 15) & ~15;
     // printf("preamble local %d stack %d\n", localOffset, stackOffset);
 
@@ -198,7 +200,7 @@ void cgfuncpostamble(int id)
         Outfile,
         "\taddq\t$%d,%%rsp\n"
         "\tpopq	%%rbp\n" // `popq %rbp`      → restore old base pointer (undo function prologue)
-        "\tret\n",      // `ret`            → return to caller
+        "\tret\n",       // `ret`            → return to caller
         stackOffset);
 }
 
