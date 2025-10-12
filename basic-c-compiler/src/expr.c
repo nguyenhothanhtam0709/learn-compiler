@@ -8,8 +8,52 @@
 #include "data.h"
 #include "decl.h"
 
-/// @brief Parse a function call with a single expression
-/// argument and return its AST
+//// @note expression_list: <null>
+///        | expression
+///        | expression ',' expression_list
+///        ;
+///
+/// @brief Parse a list of zero or more comma-separated expressions and
+/// return an AST composed of A_GLUE nodes with the left-hand child
+/// being the sub-tree of previous expressions (or NULL) and the right-hand
+/// child being the next expression. Each A_GLUE node will have size field
+/// set to the number of expressions in the tree at this point. If no
+/// expressions are parsed, NULL is returned
+static struct ASTnode *expression_list(void)
+{
+    struct ASTnode *tree = NULL,
+                   *child = NULL;
+    int exprcount = 0;
+
+    // Loop until the final right parentheses
+    while (Token.token != T_RPAREN)
+    {
+        // Parse the next expression and increment the expression count
+        child = binexpr(0);
+        exprcount++;
+
+        // Build an A_GLUE AST node with the previous tree as the left child
+        // and the new expression as the right child. Store the expression count.
+        tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, exprcount);
+
+        // Must have a ',' or ')' at this point
+        switch (Token.token)
+        {
+        case T_COMMA:
+            scan(&Token);
+            break;
+        case T_RPAREN:
+            break;
+        default:
+            fatald("Unexpected token in expression list", Token.token);
+        }
+    }
+
+    // Return the tree of expressions
+    return tree;
+}
+
+/// @brief Parse a function call and return its AST
 static struct ASTnode *funccall(void)
 {
     struct ASTnode *tree = NULL;
@@ -23,8 +67,10 @@ static struct ASTnode *funccall(void)
     // Get the '('
     lparen();
 
-    // Parse the following expression
-    tree = binexpr(0);
+    // Parse the argument expression list
+    tree = expression_list();
+
+    // XXX Check type of each argument against the function's prototype
 
     // Build the function call AST node. Store the
     // function's return type as this node's type.
@@ -35,8 +81,7 @@ static struct ASTnode *funccall(void)
     return tree;
 }
 
-/// @brief Parse the index into an array and
-/// return an AST tree for it
+/// @brief Parse the index into an array and return an AST tree for it
 static struct ASTnode *array_access(void)
 {
     struct ASTnode *left, *right;
@@ -346,9 +391,12 @@ struct ASTnode *binexpr(int ptp)
     // Fetch the next token at the same time.
     left = prefix();
 
-    // If we hit a semicolon or ')', return just the left node
+    // If we hit one of several terminating tokens, return just the left node
     tokentype = Token.token;
-    if (tokentype == T_SEMI || tokentype == T_RPAREN || tokentype == T_RBRACKET)
+    if (tokentype == T_SEMI ||
+        tokentype == T_RPAREN ||
+        tokentype == T_RBRACKET ||
+        tokentype == T_COMMA)
     {
         left->rvalue = 1;
         return left;
@@ -417,9 +465,12 @@ struct ASTnode *binexpr(int ptp)
                          0);
 
         // Update the details of the current token.
-        // If we hit a semicolon or ')', return just the left node
+        // If we hit a terminating token, return just the left node
         tokentype = Token.token;
-        if (tokentype == T_SEMI || tokentype == T_RPAREN)
+        if (tokentype == T_SEMI ||
+            tokentype == T_RPAREN ||
+            tokentype == T_RBRACKET ||
+            tokentype == T_COMMA)
         {
             left->rvalue = 1;
             return left;
