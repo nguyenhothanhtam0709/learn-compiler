@@ -467,7 +467,7 @@ int cgloadglob(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -495,7 +495,7 @@ int cgloadglob(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -526,7 +526,7 @@ int cgloadglob(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -572,7 +572,7 @@ int cgloadlocal(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -600,7 +600,7 @@ int cgloadlocal(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -631,7 +631,7 @@ int cgloadlocal(int id, int op)
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else // A_PREDEC, A_POSTDEC
+        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
             fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
         if (A_PREINC == op ||
@@ -809,14 +809,72 @@ int cgboolean(int r, int op, int label)
     return r;
 }
 
-/// @brief Call a function with one argument from the given register
-/// Return the register with the result
-int cgcall(int r, int id)
+static void cg8bytesstackalloc(int slot)
 {
-    fprintf(Outfile, "\tmov\tx0, %s\n", reglist[r]);
+    const int oldStackOffset = stackOffset;
+    stackOffset = (localOffset + slot * 8 + 15) & ~15;
+    const int allocateOffset = stackOffset - oldStackOffset;
+    if (allocateOffset > 0)
+        fprintf(Outfile,
+                "\tsub\tsp, sp, #%d\n",
+                allocateOffset);
+}
+
+/// @brief Stack alloc for additional arguments for function calling
+void cgargsstackalloc(int numargs)
+{
+    if (numargs > 8)
+        cg8bytesstackalloc(numargs - 8);
+}
+
+/// @brief Call a function with the given symbol id
+/// Pop off any arguments pushed on the stack
+/// Return the register with the result
+int cgcall(int id, int numargs)
+{
+    // Get a new register
+    int outr = alloc_register();
+
+    // Call the function
     fprintf(Outfile, "\tbl\t%s\n", Symtable[id].name);
-    fprintf(Outfile, "\tmov\t%s, x0\n", reglist[r]);
-    return r;
+    // Remove any arguments pushed on the stack
+    if (numargs > 8)
+    {
+        const int stackOffsetBeforeCall = (localOffset + 15) & ~15;
+        const int deallocateOffset = stackOffset - stackOffsetBeforeCall;
+        if (deallocateOffset > 0)
+            fprintf(Outfile,
+                    "\tadd\tsp, sp, #%d\n",
+                    stackOffset - stackOffsetBeforeCall);
+        stackOffset = stackOffsetBeforeCall;
+    }
+    // and copy the return value into our register
+    fprintf(Outfile, "\tmov\t%s, x0\n", reglist[outr]);
+    return outr;
+}
+
+/// @brief Given a register with an argument value,
+/// copy this argument into the argposn'th
+/// parameter in preparation for a future function
+/// call. Note that argposn is 1, 2, 3, 4, ..., never zero.
+void cgcopyarg(int r, int argposn)
+{
+    // If this is above the sixth argument, simply push the
+    // register on the stack. We rely on being called with
+    // successive arguments in the correct order for x86-64
+    if (argposn > 8)
+    {
+        const int offset = (argposn - 8 - 1) * 8;
+        fprintf(Outfile,
+                "\tstr\t%s, [sp, #%d]\n",
+                reglist[r], offset);
+    }
+    else
+        // Otherwise, copy the value into one of the six registers
+        // used to hold parameter values
+        fprintf(Outfile,
+                "\tmov\t%s, %s\n",
+                reglist[FIRSTPARAMREG - argposn + 1], reglist[r]);
 }
 
 /// @brief Shift a register left by a constant
