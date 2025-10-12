@@ -591,7 +591,7 @@ int cgcall(int id, int numargs)
     /// ```
 
     // Call the function
-    fprintf(Outfile, "\tcall\t%s\n", Symtable[id].name);
+    fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
     // Remove any arguments pushed on the stack
     if (numargs > 6)
         fprintf(Outfile,
