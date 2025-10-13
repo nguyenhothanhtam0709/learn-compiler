@@ -164,8 +164,8 @@ void cgpreamble()
         "\n"
         // #region Define function `printint`
         "\t.text\n"                       // `.text`              → begin code section
-        "\t.global printint\n"            // `.global printint`
-        "printint:\n"                     // `printint:`
+        "\t.global _printint\n"           // `.global _printint`
+        "_printint:\n"                    // `_printint:`
         "\tstp\tx29, x30, [sp, -16]!\n"   // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
         "\tmov\tx29, sp\n"                // `mov     x29, sp` set new frame pointer
         "\tsub\tsp, sp, #16\n"            // `sub     sp, sp, #16` allocate 16 bytes stack space for locals
@@ -181,8 +181,8 @@ void cgpreamble()
         "\n"
         // #region Define function `printchar`
         "\t.text\n"
-        "\t.global printchar\n"
-        "printchar:\n"
+        "\t.global _printchar\n"
+        "_printchar:\n"
         "\tstp\tx29, x30, [sp, -16]!\n"
         "\tmov\tx29, sp\n"
         "\tand\tw0, w0, #0x7f\n" // x & 0x7f → mask character
@@ -272,6 +272,17 @@ void cgpostamble()
 
     // #region Define integer literals
 
+    for (int i = 0; i < Globs; i++)
+    {
+        if (Symtable[i].stype != S_FUNCTION)
+            continue;
+
+        fprintf(Outfile,
+                "\t.extern _%s\n",
+                Symtable[i].name);
+    }
+    fputc('\n', Outfile);
+
     /// @note
     /// The size of an integer literal in a load instruction is limited to 16 bits.
     /// Thus, we can't put large integer literals into a single instruction.
@@ -293,7 +304,8 @@ void cgpostamble()
     // #region
 
     // #region Print out the string literals
-    fprintf(Outfile, "\t.section __TEXT,__cstring\n");
+    // fprintf(Outfile, "\t.section __TEXT,__cstring\n"); -> `.cstring` is read-only data
+    fprintf(Outfile, "\t.data\n"); // `.data` is initialized writable data
     for (int i = 0; i < Strslot; i++)
     {
         int lidx = Strlist[i].l;
@@ -312,8 +324,6 @@ void cgpostamble()
 void cgfuncpreamble(int id)
 {
     char *name = Symtable[id].name;
-    if (!strcmp(name, "main"))
-        name = strdup("_main");
 
     int i;
     /// @note Any pushed params start at this stack offset
@@ -324,8 +334,8 @@ void cgfuncpreamble(int id)
 
     fprintf(Outfile,
             "\t.text\n"
-            "\t.global\t%s\n"               // `.global <name>`             → Declare <name> as a global symbol, visible to the linker
-            "%s:\n"                         // `<name>:`                   → Define the label <name> (entry point of the function)
+            "\t.global\t_%s\n"              // `.global <name>`             → Declare <name> as a global symbol, visible to the linker
+            "_%s:\n"                        // `<name>:`                   → Define the label <name> (entry point of the function)
             "\tstp\tx29, x30, [sp, -16]!\n" // `stp     x29, x30, [sp, -16]!` push FP (x29) and LR (x30); update SP
             "\tmov\tx29, sp\n",             // `mov     x29, sp` set new frame pointer
             // "\tadd\tfp, sp, #4\n"           // `add   fp, sp, #4`          → Add sp+4 to the stack pointer (set up the new frame pointer)
@@ -836,7 +846,7 @@ int cgcall(int id, int numargs)
     int outr = alloc_register();
 
     // Call the function
-    fprintf(Outfile, "\tbl\t%s\n", Symtable[id].name);
+    fprintf(Outfile, "\tbl\t_%s\n", Symtable[id].name);
     // Remove any arguments pushed on the stack
     if (numargs > 8)
     {

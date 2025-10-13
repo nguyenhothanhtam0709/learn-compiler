@@ -8,9 +8,9 @@
 
 // Commands and default filenames
 #define AOUT "a.out"
-#ifdef __NASM__
-#define ASCMD "nasm -f elf64 -o "
-#define LDCMD "cc -no-pie -fno-plt -Wall -o "
+#if defined(__APPLE__) && defined(__MACH__)
+#define ASCMD "/usr/bin/as -o "
+#define LDCMD "/usr/bin/clang -o "
 #else
 #define ASCMD "as -o "
 #define LDCMD "gcc --no-pie -o "
