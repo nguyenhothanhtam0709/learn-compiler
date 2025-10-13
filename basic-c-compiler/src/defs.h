@@ -198,6 +198,8 @@ struct symtable
 /// @brief For functions, number of params.
 /// For structs, number of fields
 #define nelems posn
+    /// @brief For S_FUNCTIONs, indicating this function is implemented or not
+    int isimplemented;
 };
 
 #endif

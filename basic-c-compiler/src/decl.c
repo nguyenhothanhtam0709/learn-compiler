@@ -228,6 +228,9 @@ struct ASTnode *function_declaration(int type)
             fatal("No return for function with non-void type");
     }
 
+    // Mark function as implemented
+    Symtable[id].isimplemented = 1;
+
     // Return an A_FUNCTION node which has the function's id
     // and the compound statement sub-tree
     return mkastunary(A_FUNCTION, type, tree, id);
