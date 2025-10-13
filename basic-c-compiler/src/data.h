@@ -23,6 +23,8 @@ extern_ int Locls;
 extern_ FILE *Infile;
 /// @brief Output file
 extern_ FILE *Outfile;
+/// @brief Name of file we opened as Outfile
+extern_ char *Outfilename;
 /// @brief token scanned
 extern_ struct token Token;
 /// @brief Last identifier scanned
@@ -36,6 +38,15 @@ extern_ char Text[TEXTLEN + 1];
 ///   Globs                                Locls
 extern_ struct symtable Symtable[NSYMBOLS];
 
+/// @brief If true, dump the AST trees
 extern_ int O_dumpAST;
+/// @brief If true, keep any assembly files
+extern_ int O_keepasm;
+/// @brief If true, assemble the assembly files
+extern_ int O_assemble;
+/// @brief If true, link the object files
+extern_ int O_dolink;
+/// @brief If true, print info on compilation stages
+extern_ int O_verbose;
 
 #endif

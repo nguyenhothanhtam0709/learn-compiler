@@ -105,5 +105,6 @@ int addglob(char *name, int type, int stype, int class, int endlabel, int size);
 int addlocl(char *name, int type, int stype, int class, int size);
 void copyfuncparams(int slot);
 void freeloclsyms(void);
+void clear_symtable(void);
 
 #endif

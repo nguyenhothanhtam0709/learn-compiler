@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "defs.h"
 #include "data.h"
@@ -60,23 +61,31 @@ void ident(void)
 void fatal(char *s)
 {
     fprintf(stderr, "%s on line %d\n", s, Line);
+    fclose(Outfile);
+    unlink(Outfilename);
     exit(EXIT_FAILURE);
 }
 
 void fatals(char *s1, char *s2)
 {
     fprintf(stderr, "%s:%s on line %d\n", s1, s2, Line);
+    fclose(Outfile);
+    unlink(Outfilename);
     exit(EXIT_FAILURE);
 }
 
 void fatald(char *s, int d)
 {
     fprintf(stderr, "%s:%d on line %d\n", s, d, Line);
+    fclose(Outfile);
+    unlink(Outfilename);
     exit(EXIT_FAILURE);
 }
 
 void fatalc(char *s, int c)
 {
     fprintf(stderr, "%s:%c on line %d\n", s, c, Line);
+    fclose(Outfile);
+    unlink(Outfilename);
     exit(EXIT_FAILURE);
 }

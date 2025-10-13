@@ -32,7 +32,7 @@ fi
 #endregion
 
 # Try to use each input source file
-for i in input*
+for i in input*c
 # We can't do anything if there's no file to test against
 do if [ ! -f "out.$i" -a ! -f "err.$i" ]
    then echo "Can't run test on $i, no output file!"
@@ -45,15 +45,8 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
 	  # Print the test name, compile it
 	  # with our compiler
           echo -n $i
-          ../$target $i
+          ../$target -o out $i
 
-	  # Assemble the output, run it
-	  # and get the output in trial.$i
-        if [ "$target" == "$X86_64_TARGET" ]; then
-            gcc --no-pie -o out out.s
-        else
-            echo "Add linker script for $AARCH64_TARGET"
-        fi
           ./out > trial.$i
 
   	  # Compare this agains the correct output
