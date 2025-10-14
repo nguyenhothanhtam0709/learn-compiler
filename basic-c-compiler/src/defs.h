@@ -124,18 +124,16 @@ enum
     A_TOBOOL
 };
 
-/// @brief Primitive type
+/// @brief Primitive type. The bottom 4 bits is an integer
+/// value that represents the level of indirection,
+/// e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum
 {
     P_NONE, // Indicate that the AST node doesn't represent an expression and have no type;
-    P_VOID,
-    P_CHAR,
-    P_INT,
-    P_LONG,
-    P_VOIDPTR,
-    P_CHARPTR,
-    P_INTPTR,
-    P_LONGPTR,
+    P_VOID = 16,
+    P_CHAR = 32,
+    P_INT = 48,
+    P_LONG = 64,
 };
 
 /// @note
@@ -162,7 +160,7 @@ struct ASTnode
         int intvalue;
         int id;
         int size;
-    } v;
+    };
 };
 
 /// @brief Use NOREG when the AST generation
@@ -199,15 +197,21 @@ struct symtable
     int stype;
     /// @brief Storage class for the symbol
     int class;
-    /// @brief For S_FUNCTIONs, the end label
-    int endlabel;
-    /// @brief Number of elements in the symbol
-    int size;
-    /// @brief For locals, either the negative offset from the stack base pointer or register id
-    int posn;
-/// @brief For functions, number of params.
-/// For structs, number of fields
-#define nelems posn
+    union
+    {
+        /// @brief Number of elements in the symbol
+        int size;
+        /// @brief For S_FUNCTIONs, the end label
+        int endlabel;
+    };
+    union
+    {
+        /// @brief For locals, either the negative offset from the stack base pointer or register id
+        int posn;
+        /// @brief For functions, number of params.
+        /// For structs, number of fields
+        int nelems;
+    };
     /// @brief For S_FUNCTIONs, indicating this function is implemented or not
     int isimplemented;
 };
