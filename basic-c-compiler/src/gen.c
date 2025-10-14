@@ -274,19 +274,21 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
             return cgmul(leftreg, rightreg);
         }
     case A_POSTINC:
-        // Load the variable's value into a register,
-        // then increment it
-        return cgloadglob(n->id, n->op);
     case A_POSTDEC:
-        // Load the variable's value into a register,
-        // then decrement it
-        return cgloadglob(n->id, n->op);
+        // Load and decrement the variable's value into a register
+        // and post increment/decrement it
+        if (Symtable[n->id].class == C_GLOBAL)
+            return (cgloadglob(n->id, n->op));
+        else
+            return (cgloadlocal(n->id, n->op));
     case A_PREINC:
-        // Load and increment the variable's value into a register
-        return cgloadglob(n->left->id, n->op);
     case A_PREDEC:
         // Load and decrement the variable's value into a register
-        return cgloadglob(n->left->id, n->op);
+        // and pre increment/decrement it
+        if (Symtable[n->left->id].class == C_GLOBAL)
+            return (cgloadglob(n->left->id, n->op));
+        else
+            return (cgloadlocal(n->left->id, n->op));
     case A_NEGATE:
         return cgnegate(leftreg);
     case A_INVERT:

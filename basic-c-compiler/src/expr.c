@@ -426,7 +426,7 @@ struct ASTnode *binexpr(int ptp)
 
             // Ensure the right's type matches the left
             right = modify_type(right, left->type, 0);
-            if (left == NULL)
+            if (right == NULL)
                 fatal("Incompatible expression in assignment");
 
             // Make an assignment AST tree. However, switch
@@ -457,12 +457,7 @@ struct ASTnode *binexpr(int ptp)
 
         // Join that sub-tree with ours. Convert the token
         // into an AST operation at the same time.
-        left = mkastnode(binastop(tokentype),
-                         left->type,
-                         left,
-                         NULL,
-                         right,
-                         0);
+        left = mkastnode(binastop(tokentype), left->type, left, NULL, right, 0);
 
         // Update the details of the current token.
         // If we hit a terminating token, return just the left node
