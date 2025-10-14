@@ -673,7 +673,7 @@ int cgstorglob(int r, int id)
                     Symtable[id].name);
             break;
         default:
-            fatald("Bad type in cgloadglob:", Symtable[id].type);
+            fatald("Bad type in cgstorglob:", Symtable[id].type);
         }
     }
     return r;
