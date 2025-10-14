@@ -2,3 +2,5 @@
 main
 x86_64
 aarch64
+out
+tests/*.out
