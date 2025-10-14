@@ -580,7 +580,7 @@ int cgloadlocal(int id, int op)
 
         if (A_POSTINC == op || A_POSTDEC == op)
             /// @note Load value into temporary register for compute
-            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+            fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", computeR, posn);
 
         if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
             fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
@@ -594,66 +594,69 @@ int cgloadlocal(int id, int op)
             /// @note Store value back to global variable
             fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", computeR, posn);
     }
-    switch (Symtable[id].type)
+    else
     {
-    case P_CHAR:
-    {
-        /// @note Register for computation
-        const char *computeR = "w4";
-        if (op == A_PREINC || op == A_PREDEC)
-            computeR = dreglist[r];
+        switch (Symtable[id].type)
+        {
+        case P_CHAR:
+        {
+            /// @note Register for computation
+            const char *computeR = "w4";
+            if (op == A_PREINC || op == A_PREDEC)
+                computeR = dreglist[r];
 
-        /// @note Load value into allocated register `%r` for result
-        fprintf(Outfile, "\tldrb\t%s, [x29, #%d]\n", dreglist[r], posn);
+            /// @note Load value into allocated register `%r` for result
+            fprintf(Outfile, "\tldrb\t%s, [x29, #%d]\n", dreglist[r], posn);
 
-        if (A_POSTINC == op || A_POSTDEC == op)
-            /// @note Load value into temporary register for compute
-            fprintf(Outfile, "\tldrb\t%s, [x3]\n", computeR);
+            if (A_POSTINC == op || A_POSTDEC == op)
+                /// @note Load value into temporary register for compute
+                fprintf(Outfile, "\tldrb\t%s, [x29, #%d]\n", computeR, posn);
 
-        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
-            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
-            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+            if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+                fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+            else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
+                fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
-        if (A_PREINC == op ||
-            A_POSTINC == op ||
-            A_POSTDEC == op ||
-            A_POSTINC == op)
-            /// @note Store value back to global variable
-            fprintf(Outfile, "\tstrb\t%s, [x29, #%d]\n", computeR, posn);
+            if (A_PREINC == op ||
+                A_POSTINC == op ||
+                A_POSTDEC == op ||
+                A_POSTINC == op)
+                /// @note Store value back to global variable
+                fprintf(Outfile, "\tstrb\t%s, [x29, #%d]\n", computeR, posn);
 
-        break;
-    }
-    case P_INT:
-    {
-        /// @note Register for computation
-        const char *computeR = "w4";
-        if (op == A_PREINC || op == A_PREDEC)
-            computeR = dreglist[r];
+            break;
+        }
+        case P_INT:
+        {
+            /// @note Register for computation
+            const char *computeR = "w4";
+            if (op == A_PREINC || op == A_PREDEC)
+                computeR = dreglist[r];
 
-        /// @note Load value into allocated register `%r` for result
-        fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", dreglist[r], posn);
+            /// @note Load value into allocated register `%r` for result
+            fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", dreglist[r], posn);
 
-        if (A_POSTINC == op || A_POSTDEC == op)
-            /// @note Load value into temporary register for compute
-            fprintf(Outfile, "\tldr\t%s, [x3]\n", computeR);
+            if (A_POSTINC == op || A_POSTDEC == op)
+                /// @note Load value into temporary register for compute
+                fprintf(Outfile, "\tldr\t%s, [x29, #%d]\n", computeR, posn);
 
-        if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
-            fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
-        else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
-            fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
+            if (A_PREINC == op || A_POSTINC == op) // A_PREINC, A_POSTINC
+                fprintf(Outfile, "\tadd\t%s, %s, #1\n", computeR, computeR);
+            else if (A_PREDEC == op || A_POSTDEC == op) // A_PREDEC, A_POSTDEC
+                fprintf(Outfile, "\tsub\t%s, %s, #1\n", computeR, computeR);
 
-        if (A_PREINC == op ||
-            A_POSTINC == op ||
-            A_POSTDEC == op ||
-            A_POSTINC == op)
-            /// @note Store value back to global variable
-            fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", computeR, posn);
+            if (A_PREINC == op ||
+                A_POSTINC == op ||
+                A_POSTDEC == op ||
+                A_POSTINC == op)
+                /// @note Store value back to global variable
+                fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", computeR, posn);
 
-        break;
-    }
-    default:
-        fatald("Bad type in cgloadglob:", Symtable[id].type);
+            break;
+        }
+        default:
+            fatald("Bad type in cgloadlocal", Symtable[id].type);
+        }
     }
     return r;
 }
