@@ -38,6 +38,11 @@ void fprint_escaped(FILE *f, const char *s)
     }
 }
 
+/// @brief Maximum amount of arguments can be
+/// passed in register for function call.
+/// The remaining must be pushed into stack.
+#define MAX_ARGS_IN_REG 8
+
 /// @brief Position of next local variable relative to stack base pointer.
 /// We store the offset as positive to make aligning the stack pointer easier
 static int localOffset;
@@ -344,7 +349,7 @@ void cgfuncpreamble(int id)
             name, name);
 
     // Calculate offset of parameter before loading them from register into stack
-    for (i = NSYMBOLS - 1; (i > Locls) && (i >= NSYMBOLS - 8); i--)
+    for (i = NSYMBOLS - 1; (i > Locls) && (i >= NSYMBOLS - MAX_ARGS_IN_REG); i--)
     {
         if (Symtable[i].class != C_PARAM)
             break;
@@ -377,7 +382,7 @@ void cgfuncpreamble(int id)
 
     // Copy any in-register parameters to the stack
     // Stop after no more than six parameter registers
-    for (int idx = NSYMBOLS - 1; (idx > Locls) && (idx >= NSYMBOLS - 8); idx--)
+    for (int idx = NSYMBOLS - 1; (idx > Locls) && (idx >= NSYMBOLS - MAX_ARGS_IN_REG); idx--)
     {
         if (Symtable[idx].class != C_PARAM)
             break;
@@ -833,8 +838,8 @@ static void cg8bytesstackalloc(int slot)
 /// @brief Stack alloc for additional arguments for function calling
 void cgargsstackalloc(int numargs)
 {
-    if (numargs > 8)
-        cg8bytesstackalloc(numargs - 8);
+    if (numargs > MAX_ARGS_IN_REG)
+        cg8bytesstackalloc(numargs - MAX_ARGS_IN_REG);
 }
 
 /// @brief Call a function with the given symbol id
@@ -848,7 +853,7 @@ int cgcall(int id, int numargs)
     // Call the function
     fprintf(Outfile, "\tbl\t_%s\n", Symtable[id].name);
     // Remove any arguments pushed on the stack
-    if (numargs > 8)
+    if (numargs > MAX_ARGS_IN_REG)
     {
         const int stackOffsetBeforeCall = (localOffset + 15) & ~15;
         const int deallocateOffset = stackOffset - stackOffsetBeforeCall;
@@ -872,9 +877,9 @@ void cgcopyarg(int r, int argposn)
     // If this is above the sixth argument, simply push the
     // register on the stack. We rely on being called with
     // successive arguments in the correct order for x86-64
-    if (argposn > 8)
+    if (argposn > MAX_ARGS_IN_REG)
     {
-        const int offset = (argposn - 8 - 1) * 8;
+        const int offset = (argposn - MAX_ARGS_IN_REG - 1) * 8;
         fprintf(Outfile,
                 "\tstr\t%s, [sp, #%d]\n",
                 reglist[r], offset);

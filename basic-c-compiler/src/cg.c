@@ -9,8 +9,6 @@
 #include "decl.h"
 #include "compat.h"
 
-// #region Basic register allocator
-
 // Flag to say which section were are outputting in to
 enum
 {
@@ -36,6 +34,13 @@ void cgdataseg()
         currSeg = data_seg;
     }
 }
+
+/// @brief Maximum amount of arguments can be
+/// passed in register for function call.
+/// The remaining must be pushed into stack.
+#define MAX_ARGS_IN_REG 6
+
+// #region Basic register allocator
 
 /// @brief Position of next local variable relative to stack base pointer.
 /// We store the offset as positive to make aligning the stack pointer easier
@@ -198,7 +203,7 @@ void cgfuncpreamble(int id)
         if (Symtable[i].class != C_PARAM)
             break;
 
-        if (i < NSYMBOLS - 6)
+        if (i < NSYMBOLS - MAX_ARGS_IN_REG)
             break;
 
         Symtable[i].posn = newlocaloffset(Symtable[i].type);
@@ -593,10 +598,10 @@ int cgcall(int id, int numargs)
     // Call the function
     fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
     // Remove any arguments pushed on the stack
-    if (numargs > 6)
+    if (numargs > MAX_ARGS_IN_REG)
         fprintf(Outfile,
                 "\taddq\t$%d, %%rsp\n",
-                8 * (numargs - 6));
+                8 * (numargs - MAX_ARGS_IN_REG));
     // and copy the return value into our register
     fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
     return outr;
@@ -611,7 +616,7 @@ void cgcopyarg(int r, int argposn)
     // If this is above the sixth argument, simply push the
     // register on the stack. We rely on being called with
     // successive arguments in the correct order for x86-64
-    if (argposn > 6)
+    if (argposn > MAX_ARGS_IN_REG)
         fprintf(Outfile,
                 "\tpushq\t%s\n",
                 reglist[r]);
