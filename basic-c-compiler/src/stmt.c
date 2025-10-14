@@ -191,6 +191,7 @@ static struct ASTnode *single_statement(void)
         // This catches assignment statements.
         return binexpr(0);
     }
+    return NULL;
 }
 
 /// @brief Parse a compound statement
