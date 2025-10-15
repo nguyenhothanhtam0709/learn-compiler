@@ -210,7 +210,7 @@ static struct ASTnode *primary(void)
 /// We rely on a 1:1 mapping from token to AST operation.
 static int binastop(int tokentype)
 {
-    if (tokentype > T_EOF && tokentype < T_SLASH)
+    if (tokentype > T_EOF && tokentype <= T_SLASH)
         return tokentype;
 
     fatald("Syntax error, token", tokentype);
@@ -255,7 +255,7 @@ static int OpPrec[] = {
 static int op_precedence(int tokentype)
 {
     int prec;
-    if (tokentype >= T_SLASH)
+    if (tokentype > T_SLASH)
         fatald("Token with no precedence in op_precedence:", tokentype);
     prec = OpPrec[tokentype];
     if (prec == 0)

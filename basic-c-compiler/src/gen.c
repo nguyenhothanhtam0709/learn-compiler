@@ -232,7 +232,7 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
         switch (n->right->op)
         {
         case A_IDENT:
-            if (n->sym->class == C_GLOBAL)
+            if (n->right->sym->class == C_GLOBAL)
                 return cgstorglob(leftreg, n->right->sym);
             else
                 return cgstorlocal(leftreg, n->right->sym);
@@ -285,7 +285,7 @@ int genAST(struct ASTnode *n, int label, int parentASTop)
     case A_PREDEC:
         // Load and decrement the variable's value into a register
         // and pre increment/decrement it
-        if (n->sym->class == C_GLOBAL)
+        if (n->left->sym->class == C_GLOBAL)
             return (cgloadglob(n->left->sym, n->op));
         else
             return (cgloadlocal(n->left->sym, n->op));

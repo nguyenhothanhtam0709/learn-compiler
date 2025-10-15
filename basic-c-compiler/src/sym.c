@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 
 #include "defs.h"
 #include "data.h"
@@ -10,10 +11,6 @@ void appendsym(struct symtable **head,
                struct symtable **tail,
                struct symtable *node)
 {
-    // Check for valid pointers
-    if (head == NULL || tail == NULL || node == NULL)
-        fatal("Either head, tail or node is NULL in appendsym");
-
     // Check for valid pointers
     if (head == NULL || tail == NULL || node == NULL)
         fatal("Either head, tail or node is NULL in appendsym");

@@ -5,18 +5,20 @@
 #include "decl.h"
 
 /// @brief Build and return a generic AST node
-struct ASTnode *mkastnode(int op,
-                          int type,
+struct ASTnode *mkastnode(int op, int type,
                           struct ASTnode *left,
                           struct ASTnode *mid,
                           struct ASTnode *right,
-                          struct symtable *sym,
-                          int intvalue)
+                          struct symtable *sym, int intvalue)
 {
-    struct ASTnode *n = (struct ASTnode *)malloc(sizeof(struct ASTnode));
+    struct ASTnode *n;
+
+    // Malloc a new ASTnode
+    n = (struct ASTnode *)malloc(sizeof(struct ASTnode));
     if (n == NULL)
         fatal("Unable to malloc in mkastnode()");
 
+    // Copy in the field values and return it
     n->op = op;
     n->type = type;
     n->left = left;
@@ -28,13 +30,15 @@ struct ASTnode *mkastnode(int op,
 }
 
 /// @brief Make an AST leaf node
-struct ASTnode *mkastleaf(int op, int type, struct symtable *sym, int intvalue)
+struct ASTnode *mkastleaf(int op, int type,
+                          struct symtable *sym, int intvalue)
 {
     return mkastnode(op, type, NULL, NULL, NULL, sym, intvalue);
 }
 
 /// @brief Make a unary AST node: only one child
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, struct symtable *sym, int intvalue)
+struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
+                           struct symtable *sym, int intvalue)
 {
     return mkastnode(op, type, left, NULL, NULL, sym, intvalue);
 }

@@ -30,7 +30,7 @@ char *alter_suffix(char *str, char suffix)
     // Ensure there is a suffix
     posn++;
     if (*posn == '\0')
-        return (NULL);
+        return NULL;
 
     // Change the suffix and NUL-terminate the string
     *posn++ = suffix;

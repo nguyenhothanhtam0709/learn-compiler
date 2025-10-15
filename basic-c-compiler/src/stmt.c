@@ -16,7 +16,7 @@ static struct ASTnode *single_statement(void);
 ///
 /// Parse an IF statement including any
 /// optional ELSE clause and return its AST
-struct ASTnode *if_statement(void)
+static struct ASTnode *if_statement(void)
 {
     struct ASTnode *condAST, *trueAST, *falseAST = NULL;
 
@@ -51,7 +51,7 @@ struct ASTnode *if_statement(void)
 
 /// @brief Parse a WHILE statement
 /// and return its AST
-struct ASTnode *while_statement(void)
+static struct ASTnode *while_statement(void)
 {
     struct ASTnode *condAST = NULL,
                    *bodyAST = NULL;

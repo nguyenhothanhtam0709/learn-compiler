@@ -955,14 +955,13 @@ int cgaddress(struct symtable *sym)
 {
     int r = alloc_register();
 
-    if (sym->class == C_LOCAL)
-        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn,
-                reglist[r]);
-    else
+    if (sym->class == C_GLOBAL)
         /// @note The `leaq` instruction loads the address of the named identifier.
         /// `leaq symbol(%rip), <reg>`
         ///
         fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
+    else
+        fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
     return r;
 }
 
@@ -1002,7 +1001,7 @@ int cgstorderef(int r1, int r2, int type)
 {
     // Get the size of the type
     int size = cgprimsize(type);
-    switch (type)
+    switch (size)
     {
     case 1:
         fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
