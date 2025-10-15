@@ -229,17 +229,17 @@ struct ASTnode *function_declaration(int type)
     }
     // Clear out the parameter list
     Parmhead = Parmtail = NULL;
+    oldfuncsym->is_variadic = is_variadic;
 
     // Declaration ends in a semicolon, only a prototype.
     if (Token.token == T_SEMI)
     {
         scan(&Token);
-        return (NULL);
+        return NULL;
     }
     // This is not just a prototype.
     // Set the Functionid global to the function's symbol pointer
     Functionid = oldfuncsym;
-    Functionid->is_variadic = is_variadic;
 
     // Get the AST tree for the compound statement
     tree = compound_statement();

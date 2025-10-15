@@ -277,14 +277,15 @@ void cgpostamble()
 
     // #region Define integer literals
 
-    for (int i = 0; i < Globs; i++)
+    struct symtable *sym = Globhead;
+    while (sym)
     {
-        if (Symtable[i].stype != S_FUNCTION)
-            continue;
+        if (sym->stype == S_FUNCTION && !sym->isimplemented)
+            fprintf(Outfile,
+                    "\t.extern _%s\n",
+                    sym->name);
 
-        fprintf(Outfile,
-                "\t.extern _%s\n",
-                Symtable[i].name);
+        sym = sym->next;
     }
     fputc('\n', Outfile);
 
@@ -326,11 +327,11 @@ void cgpostamble()
 }
 
 // Print out a function preamble
-void cgfuncpreamble(int id)
+void cgfuncpreamble(struct symtable *sym)
 {
-    char *name = Symtable[id].name;
-
-    int i;
+    char *name = sym->name;
+    struct symtable *parm, *locvar;
+    int cnt;
     /// @note Any pushed params start at this stack offset
     int paramOffset = 16;
     /// @brief Index to the first param register in above reg lists
@@ -349,29 +350,27 @@ void cgfuncpreamble(int id)
             name, name);
 
     // Calculate offset of parameter before loading them from register into stack
-    for (i = NSYMBOLS - 1; (i > Locls) && (i >= NSYMBOLS - MAX_ARGS_IN_REG); i--)
+    for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++)
     {
-        if (Symtable[i].class != C_PARAM)
-            break;
+        if (cnt > MAX_ARGS_IN_REG)
+        {
+            /// @note In xAArch64 ABI, only the first 8 parameters of function are
+            /// allocated on the register, the rest of parameters will be allocated
+            /// on the stack of caller. Below code calculates stack offset of stack-allocated
+            /// parameter relative to `%rbp`
 
-        Symtable[i].posn = newlocaloffset(Symtable[i].type);
+            parm->posn = paramOffset;
+            paramOffset += 8;
+        }
+        else
+            parm->posn = newlocaloffset(parm->type);
     }
 
     // For the remainder, if they are a parameter then they are
     // already on the stack. If only a local, make a stack position.
-    for (; i > Locls; i--)
+    for (locvar = Loclhead; locvar != NULL; locvar = locvar->next)
     {
-        if (Symtable[i].class == C_PARAM)
-        {
-            /// @note In AArch64 ABI, only the first 8 parameters of function are
-            /// allocated on the register, the rest of parameters will be allocated
-            /// on the stack of caller. Below code calculates stack offset of stack-allocated
-            /// parameter relative to `%rbp`
-            Symtable[i].posn = paramOffset;
-            paramOffset += 8;
-        }
-        else
-            Symtable[i].posn = newlocaloffset(Symtable[i].type);
+        locvar->posn = newlocaloffset(locvar->type);
     }
 
     /// @note Keep stack 16-bytes align as requirement of AArch64 ABI
@@ -382,19 +381,17 @@ void cgfuncpreamble(int id)
 
     // Copy any in-register parameters to the stack
     // Stop after no more than six parameter registers
-    for (int idx = NSYMBOLS - 1; (idx > Locls) && (idx >= NSYMBOLS - MAX_ARGS_IN_REG); idx--)
+    for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++)
     {
-        if (Symtable[idx].class != C_PARAM)
-            break;
-
-        cgstorlocal(paramReg--, idx);
+        if (cnt <= MAX_ARGS_IN_REG)
+            cgstorlocal(paramReg--, parm);
     }
 }
 
 /// @brief Print out the assembly postamble
-void cgfuncpostamble(int id)
+void cgfuncpostamble(struct symtable *sym)
 {
-    cglabel(Symtable[id].endlabel); // Mark <endlabel>
+    cglabel(sym->endlabel); // Mark <endlabel>
     fprintf(Outfile,
             "\tadd\tsp, sp, #%d\n"
             "\tldp\tx29, x30, [sp], 16\n" // `ldp     x29, x30, [sp], 16` restore FP & LR; adjust SP back
@@ -441,16 +438,16 @@ static void load_global_var_addr(const char *var_name, const char *r_name)
 }
 
 /// @brief Generate code to load global variable addr to `x3`
-static void load_var_symbol(int id)
+static void load_var_symbol(struct symtable *sym)
 {
-    load_global_var_addr(Symtable[id].name, "x3");
+    load_global_var_addr(sym->name, "x3");
 }
 
 /// @brief Load a value from a variable into a register.
 /// Return the number of the register. If the
 /// operation is pre- or post-increment/decrement,
 /// also perform this action.
-int cgloadglob(int id, int op)
+int cgloadglob(struct symtable *sym, int op)
 {
     // Get a new register
     int r = alloc_register();
@@ -462,8 +459,8 @@ int cgloadglob(int id, int op)
     /// - Store it back.
 
     // Get the offset to the variable
-    load_var_symbol(id);
-    if (cgprimsize(Symtable[id].type) == 8)
+    load_var_symbol(sym);
+    if (cgprimsize(sym->type) == 8)
     {
         /// @note Register for computation
         const char *computeR = "x4";
@@ -492,7 +489,7 @@ int cgloadglob(int id, int op)
     else
     {
         // Print out the code to initialise it
-        switch (Symtable[id].type)
+        switch (sym->type)
         {
         case P_CHAR:
         {
@@ -551,7 +548,7 @@ int cgloadglob(int id, int op)
             break;
         }
         default:
-            fatald("Bad type in cgloadglob:", Symtable[id].type);
+            fatald("Bad type in cgloadglob:", sym->type);
         }
     }
     return r;
@@ -561,14 +558,14 @@ int cgloadglob(int id, int op)
 /// Return the number of the register. If the
 /// operation is pre- or post-increment/decrement,
 /// also perform this action.
-int cgloadlocal(int id, int op)
+int cgloadlocal(struct symtable *sym, int op)
 {
     // Get a new register
     int r = alloc_register();
     /// @note Stack offset
-    int posn = Symtable[id].posn;
+    int posn = sym->posn;
 
-    if (cgprimsize(Symtable[id].type) == 8)
+    if (cgprimsize(sym->type) == 8)
     {
         /// @note Register for computation
         const char *computeR = "x4";
@@ -596,7 +593,7 @@ int cgloadlocal(int id, int op)
     }
     else
     {
-        switch (Symtable[id].type)
+        switch (sym->type)
         {
         case P_CHAR:
         {
@@ -655,7 +652,7 @@ int cgloadlocal(int id, int op)
             break;
         }
         default:
-            fatald("Bad type in cgloadlocal", Symtable[id].type);
+            fatald("Bad type in cgloadlocal", sym->type);
         }
     }
     return r;
@@ -834,10 +831,10 @@ static void cg8bytesstackalloc(int slot)
 }
 
 /// @brief Stack alloc for additional arguments for function calling
-void cgargsstackalloc(int funcid, int numargs)
+void cgargsstackalloc(struct symtable *sym, int numargs)
 {
-    if (Symtable[funcid].is_variadic && numargs > Symtable[funcid].nelems)
-        cg8bytesstackalloc(numargs - Symtable[funcid].nelems);
+    if (sym->is_variadic && numargs > sym->nelems)
+        cg8bytesstackalloc(numargs - sym->nelems);
     if (numargs > MAX_ARGS_IN_REG)
         cg8bytesstackalloc(numargs - MAX_ARGS_IN_REG);
 }
@@ -845,16 +842,16 @@ void cgargsstackalloc(int funcid, int numargs)
 /// @brief Call a function with the given symbol id
 /// Pop off any arguments pushed on the stack
 /// Return the register with the result
-int cgcall(int id, int numargs)
+int cgcall(struct symtable *sym, int numargs)
 {
     // Get a new register
     int outr = alloc_register();
 
     // Call the function
-    fprintf(Outfile, "\tbl\t_%s\n", Symtable[id].name);
+    fprintf(Outfile, "\tbl\t_%s\n", sym->name);
     // Remove any arguments pushed on the stack
     if (numargs > MAX_ARGS_IN_REG ||
-        (Symtable[id].is_variadic && numargs > Symtable[id].nelems))
+        (sym->is_variadic && numargs > sym->nelems))
     {
         const int stackOffsetBeforeCall = (localOffset + 15) & ~15;
         const int deallocateOffset = stackOffset - stackOffsetBeforeCall;
@@ -873,12 +870,12 @@ int cgcall(int id, int numargs)
 /// copy this argument into the argposn'th
 /// parameter in preparation for a future function
 /// call. Note that argposn is 1, 2, 3, 4, ..., never zero.
-void cgcopyarg(int funcid, int r, int argposn)
+void cgcopyarg(struct symtable *sym, int r, int argposn)
 {
-    if (Symtable[funcid].is_variadic &&
-        argposn > Symtable[funcid].nelems)
+    if (sym->is_variadic &&
+        argposn > sym->nelems)
     {
-        const int offset = (argposn - Symtable[funcid].nelems - 1) * 8;
+        const int offset = (argposn - sym->nelems - 1) * 8;
         fprintf(Outfile,
                 "\tstr\t%s, [sp, #%d]\n",
                 reglist[r], offset);
@@ -909,16 +906,16 @@ int cgshlconst(int r, int val)
 }
 
 /// @brief Store a register's value into a variable
-int cgstorglob(int r, int id)
+int cgstorglob(int r, struct symtable *sym)
 {
     // Get the offset to the variable
-    load_var_symbol(id);
+    load_var_symbol(sym);
 
-    if (cgprimsize(Symtable[id].type) == 8)
+    if (cgprimsize(sym->type) == 8)
         fprintf(Outfile, "\tstr\t%s, [x3]\n", reglist[r]); // 64-bit store (use xX)
     else
     {
-        switch (Symtable[id].type)
+        switch (sym->type)
         {
         case P_CHAR:
             fprintf(Outfile, "\tstrb\t%s, [x3]\n", dreglist[r]); // 8-bit store
@@ -927,7 +924,7 @@ int cgstorglob(int r, int id)
             fprintf(Outfile, "\tstr\t%s, [x3]\n", dreglist[r]); // 32-bit store (use wX)
             break;
         default:
-            fatald("Bad type in cgstorglob:", Symtable[id].type);
+            fatald("Bad type in cgstorglob:", sym->type);
         }
     }
 
@@ -935,15 +932,15 @@ int cgstorglob(int r, int id)
 }
 
 /// @brief Store a register's value into a local variable
-int cgstorlocal(int r, int id)
+int cgstorlocal(int r, struct symtable *sym)
 {
-    const int posn = Symtable[id].posn;
+    const int posn = sym->posn;
 
-    if (cgprimsize(Symtable[id].type) == 8)
+    if (cgprimsize(sym->type) == 8)
         fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", reglist[r], posn);
     else
     {
-        switch (Symtable[id].type)
+        switch (sym->type)
         {
         case P_CHAR:
             fprintf(Outfile, "\tstrb\t%s, [x29, #%d]\n", dreglist[r], posn); // 8-bit store
@@ -952,7 +949,7 @@ int cgstorlocal(int r, int id)
             fprintf(Outfile, "\tstr\t%s, [x29, #%d]\n", dreglist[r], posn); // 32-bit store (use wX)
             break;
         default:
-            fatald("Bad type in cgstorglob:", Symtable[id].type);
+            fatald("Bad type in cgstorglob:", sym->type);
         }
     }
 
@@ -981,15 +978,15 @@ int cgprimsize(int type)
 }
 
 /// @note Generate a global symbol
-void cgglobsym(int id)
+void cgglobsym(struct symtable *node)
 {
-    if (Symtable[id].stype == S_FUNCTION)
+    if (node->stype == S_FUNCTION)
         return;
 
-    char *name = Symtable[id].name;
-    int type = Symtable[id].type;
+    char *name = node->name;
+    int type = node->type;
 
-    if (Symtable[id].stype == S_ARRAY)
+    if (node->stype == S_ARRAY)
         if (ptrtype(type))
             type = value_at(type);
 
@@ -1003,7 +1000,7 @@ void cgglobsym(int id)
             "__global_%s:\n"
             "\t.space %d\n"
             "\n",
-            align, name, name, typesize * Symtable[id].size);
+            align, name, name, typesize * node->size);
 }
 
 /// @brief Generate a global string and its start label
@@ -1103,27 +1100,27 @@ int cgwiden(int r, int oldtype, int newtype)
 }
 
 // Generate code to return a value from a function
-void cgreturn(int reg, int id)
+void cgreturn(int reg, struct symtable *sym)
 {
 
     fprintf(Outfile, "\tmov\tx0, %s\n", reglist[reg]);
-    cgjump(Symtable[id].endlabel);
+    cgjump(sym->endlabel);
 }
 
 /// @brief Generate code to load the address of an
 /// identifier into a variable. Return a new register
-int cgaddress(int id)
+int cgaddress(struct symtable *sym)
 {
     // Get a new register
     int r = alloc_register();
 
-    if (Symtable[id].class == C_LOCAL)
+    if (sym->class == C_GLOBAL)
+        // Get the offset to the variable
+        load_global_var_addr(sym->name, reglist[r]);
+    else
         fprintf(Outfile,
                 "\tadd\t%s, x29, #%d\n",
-                reglist[r], Symtable[id].posn);
-    else
-        // Get the offset to the variable
-        load_global_var_addr(Symtable[id].name, reglist[r]);
+                reglist[r], sym->posn);
 
     return r;
 }
