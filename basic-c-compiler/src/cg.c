@@ -180,7 +180,6 @@ void cgfuncpreamble(struct symtable *sym)
     char *name = sym->name;
     struct symtable *parm, *locvar;
     int cnt;
-    int i;
     /// @note Any pushed params start at this stack offset
     int paramOffset = 16;
     /// @brief Index to the first param register in above reg lists
@@ -202,8 +201,13 @@ void cgfuncpreamble(struct symtable *sym)
     // The remaining parameters are already on the stack
     for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++)
     {
-        if (cnt > 6)
+        if (cnt > MAX_ARGS_IN_REG)
         {
+            /// @note In x86-64 ABI, only the first 6 parameters of function are
+            /// allocated on the register, the rest of parameters will be allocated
+            /// on the stack of caller. Below code calculates stack offset of stack-allocated
+            /// parameter relative to `%rbp`
+
             parm->posn = paramOffset;
             paramOffset += 8;
         }
@@ -217,13 +221,7 @@ void cgfuncpreamble(struct symtable *sym)
     // For the remainder, if they are a parameter then they are
     // already on the stack. If only a local, make a stack position.
     for (locvar = Loclhead; locvar != NULL; locvar = locvar->next)
-    {
-        /// @note In x86-64 ABI, only the first 6 parameters of function are
-        /// allocated on the register, the rest of parameters will be allocated
-        /// on the stack of caller. Below code calculates stack offset of stack-allocated
-        /// parameter relative to `%rbp`
         locvar->posn = newlocaloffset(locvar->type);
-    }
 
     // Align the stack pointer to be a multiple of 16
     // less than its previous value
