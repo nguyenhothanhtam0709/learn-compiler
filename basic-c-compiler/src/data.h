@@ -13,12 +13,8 @@
 extern_ int Line;
 /// @brief Character put back by scanner
 extern_ int Putback;
-/// @brief Symbol id of the current function
-extern_ int Functionid;
-/// @brief Position of next free global symbol slot
-extern_ int Globs;
-/// @brief Position of next free local symbol slot
-extern_ int Locls;
+/// @brief Symbol ptr of the current function
+extern_ struct symtable *Functionid;
 /// @brief Input file
 extern_ FILE *Infile;
 /// @brief Output file
@@ -29,15 +25,19 @@ extern_ char *Outfilename;
 extern_ struct token Token;
 /// @brief Last identifier scanned
 extern_ char Text[TEXTLEN + 1];
-/// @brief Global symbol table
-///
-/// @note Symbol table layout:
-/// 0xxxx......................................xxxxxxxxxxxxNSYMBOLS-1
-///     ^                                    ^
-///     |                                    |
-///   Globs                                Locls
-extern_ struct symtable Symtable[NSYMBOLS];
 
+// #region Symbol table lists
+/// @brief Global variables and functions
+extern_ struct symtable *Globhead, *Globtail;
+/// @brief Local variables
+extern_ struct symtable *Loclhead, *Locltail;
+/// @brief Local parameters
+extern_ struct symtable *Parmhead, *Parmtail;
+/// @brief Composite types
+extern_ struct symtable *Comphead, *Comptail;
+// #endregion
+
+// #region Command-line flags
 /// @brief If true, dump the AST trees
 extern_ int O_dumpAST;
 /// @brief If true, keep any assembly files
@@ -48,5 +48,6 @@ extern_ int O_assemble;
 extern_ int O_dolink;
 /// @brief If true, print info on compilation stages
 extern_ int O_verbose;
+// #endregion
 
 #endif

@@ -1,10 +1,8 @@
 #ifndef C_DEFS_H
 #define C_DEFS_H
 
-/// @brief Length of symbols in input
+/// @brief Length of identifiers in input
 #define TEXTLEN 512
-/// @brief Number of symbol table entries
-#define NSYMBOLS 1024
 
 // Commands and default filenames
 #define AOUT "a.out"
@@ -137,40 +135,6 @@ enum
     P_LONG = 64,
 };
 
-/// @note
-/// - For A_ASSIGN,`right` is actually lvalue
-struct ASTnode
-{
-    /// @brief "Operation" to be performed on this tree.
-    int op;
-    /// @brief Type of any expression this tree generates.
-    int type;
-    /// @brief True if the node is an rvalue
-    /// @note Before we can determine a specific node is rvalue, all nodes are assumed as lvalue by the compiler.
-    int rvalue;
-    struct ASTnode *left;
-    struct ASTnode *mid;
-    struct ASTnode *right;
-    /// @brief For A_INTLIT, the integer value.
-    /// For A_IDENT, the symbol slot number.
-    /// For A_FUNCTION, the symbol slot number.
-    /// For A_SCALE, the size to scale by
-    /// For A_FUNCCALL, the symbol slot number.
-    union
-    {
-        int intvalue;
-        int id;
-        int size;
-    };
-};
-
-/// @brief Use NOREG when the AST generation
-/// functions have no register to return
-#define NOREG -1
-/// @brief Use NOLABEL when we have no label to
-/// pass to genAST()
-#define NOLABEL 0
-
 /// @brief Structural types
 enum
 {
@@ -213,10 +177,51 @@ struct symtable
         /// For structs, number of fields
         int nelems;
     };
+    // #region Specific fields for S_FUNCTION
     /// @brief For S_FUNCTIONs, indicating this function is implemented or not
     int isimplemented;
     /// @brief For S_FUNCTIONs, indicating this function is variadic function or not
     int is_variadic;
+    // #endregion
+    ///@brief Next symbol in one list
+    struct symtable *next;
+    /// @brief First member of a function, struct,
+    /// union or enum
+    struct symtable *member;
 };
+
+/// @note
+/// - For A_ASSIGN,`right` is actually lvalue
+struct ASTnode
+{
+    /// @brief "Operation" to be performed on this tree.
+    int op;
+    /// @brief Type of any expression this tree generates.
+    int type;
+    /// @brief True if the node is an rvalue
+    /// @note Before we can determine a specific node is rvalue, all nodes are assumed as lvalue by the compiler.
+    int rvalue;
+    struct ASTnode *left;
+    struct ASTnode *mid;
+    struct ASTnode *right;
+    /// @brief For many AST nodes, the pointer to
+    /// the symbol in the symbol table
+    struct symtable *sym;
+    union
+    {
+        /// @brief For A_INTLIT, the integer value.
+        int intvalue;
+        /// @brief For A_IDENT, the symbol slot number.
+        /// For A_SCALE, the size to scale by
+        int size;
+    };
+};
+
+/// @brief Use NOREG when the AST generation
+/// functions have no register to return
+#define NOREG -1
+/// @brief Use NOLABEL when we have no label to
+/// pass to genAST()
+#define NOLABEL 0
 
 #endif
