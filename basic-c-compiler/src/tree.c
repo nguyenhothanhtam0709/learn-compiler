@@ -21,7 +21,7 @@ struct ASTnode *mkastnode(int op,
     n->left = left;
     n->mid = mid;
     n->right = right;
-    n->v.intvalue = intvalue;
+    n->intvalue = intvalue;
     return n;
 }
 
@@ -98,7 +98,7 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "\n\n");
         return;
     case A_FUNCTION:
-        fprintf(stdout, "A_FUNCTION %s\n", Symtable[n->v.id].name);
+        fprintf(stdout, "A_FUNCTION %s\n", Symtable[n->id].name);
         return;
     case A_ADD:
         fprintf(stdout, "A_ADD\n");
@@ -131,13 +131,16 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "A_GE\n");
         return;
     case A_INTLIT:
-        fprintf(stdout, "A_INTLIT %d\n", n->v.intvalue);
+        fprintf(stdout, "A_INTLIT %d\n", n->intvalue);
+        return;
+    case A_STRLIT:
+        fprintf(stdout, "A_STRLIT rval label L%d\n", n->id);
         return;
     case A_IDENT:
         if (n->rvalue)
-            fprintf(stdout, "A_IDENT rval %s\n", Symtable[n->v.id].name);
+            fprintf(stdout, "A_IDENT rval %s\n", Symtable[n->id].name);
         else
-            fprintf(stdout, "A_IDENT %s\n", Symtable[n->v.id].name);
+            fprintf(stdout, "A_IDENT %s\n", Symtable[n->id].name);
         return;
     case A_ASSIGN:
         fprintf(stdout, "A_ASSIGN\n");
@@ -149,10 +152,10 @@ void dumpAST(struct ASTnode *n, int label, int level)
         fprintf(stdout, "A_RETURN\n");
         return;
     case A_FUNCCALL:
-        fprintf(stdout, "A_FUNCCALL %s\n", Symtable[n->v.id].name);
+        fprintf(stdout, "A_FUNCCALL %s\n", Symtable[n->id].name);
         return;
     case A_ADDR:
-        fprintf(stdout, "A_ADDR %s\n", Symtable[n->v.id].name);
+        fprintf(stdout, "A_ADDR %s\n", Symtable[n->id].name);
         return;
     case A_DEREF:
         if (n->rvalue)
@@ -161,13 +164,13 @@ void dumpAST(struct ASTnode *n, int label, int level)
             fprintf(stdout, "A_DEREF\n");
         return;
     case A_SCALE:
-        fprintf(stdout, "A_SCALE %d\n", n->v.size);
+        fprintf(stdout, "A_SCALE %d\n", n->size);
         return;
     case A_PREINC:
-        fprintf(stdout, "A_PREINC %s\n", Symtable[n->v.id].name);
+        fprintf(stdout, "A_PREINC %s\n", Symtable[n->id].name);
         return;
     case A_PREDEC:
-        fprintf(stdout, "A_PREDEC %s\n", Symtable[n->v.id].name);
+        fprintf(stdout, "A_PREDEC %s\n", Symtable[n->id].name);
         return;
     case A_POSTINC:
         fprintf(stdout, "A_POSTINC\n");

@@ -71,7 +71,7 @@ void var_declaration(int type, int class)
             if (class == C_LOCAL)
                 fatal("For now, declaration of local arrays is not implemented");
             else
-                addglob(Text, pointer_to(type), S_ARRAY, class, 0, Token.intvalue);
+                addglob(Text, pointer_to(type), S_ARRAY, class, Token.intvalue);
         }
 
         // ensure we have a following ']'
@@ -88,7 +88,7 @@ void var_declaration(int type, int class)
                 fatals("Duplicate local variable declaration", Text);
         }
         else
-            addglob(Text, type, S_VARIABLE, class, 0, 1);
+            addglob(Text, type, S_VARIABLE, class, 1);
     }
 }
 
@@ -116,7 +116,7 @@ static int param_declaration(int id)
         orig_paramcnt = Symtable[id].nelems;
 
     // Loop until the final right parentheses
-    while (Token.token != T_RPAREN)
+    while (Token.token != T_RPAREN && Token.token != T_ELLIPSIS)
     {
         // Get the type and identifier
         // and add it to the symbol table
@@ -181,13 +181,18 @@ struct ASTnode *function_declaration(int type)
     if (id == -1)
     {
         endlabel = genlabel();
-        nameslot = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel, 0);
+        nameslot = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel);
     }
 
     // Scan in the '(', any parameters and the ')'.
     // Pass in any existing function prototype symbol slot number
     lparen();
     paramcnt = param_declaration(id);
+    if (Token.token == T_ELLIPSIS)
+    {
+        scan(&Token);
+        Symtable[nameslot].is_variadic = 1;
+    }
     rparen();
 
     // If this is a new function declaration, update the
