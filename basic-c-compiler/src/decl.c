@@ -137,7 +137,7 @@ static int param_declaration(struct symtable *funcsym)
         protoptr = funcsym->member;
 
     // Loop until the final right parentheses
-    while (Token.token != T_RPAREN)
+    while (Token.token != T_RPAREN && Token.token != T_ELLIPSIS)
     {
         // Get the type and identifier
         // and add it to the symbol table
