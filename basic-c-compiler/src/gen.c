@@ -99,9 +99,13 @@ static int gen_funccall(struct ASTnode *n)
     int reg,
         numargs = 0;
 
-    if (Symtable[n->id].nelems > 1)
+    // Keep the first (highest) number of arguments
+    if (gluetree)
+        numargs = gluetree->size;
+
+    if (numargs > 1)
         /// @note Stack allocation for pushed arguments
-        cgargsstackalloc(Symtable[n->id].nelems);
+        cgargsstackalloc(n->id, numargs);
 
     // If there is a list of arguments, walk this list
     // from the last argument (right-hand child) to the
@@ -112,11 +116,7 @@ static int gen_funccall(struct ASTnode *n)
         reg = genAST(gluetree->right, NOLABEL, gluetree->op);
 
         // Copy this into the n'th function parameter: size is 1, 2, 3, ...
-        cgcopyarg(reg, gluetree->size);
-
-        // Keep the first (highest) number of arguments
-        if (numargs == 0)
-            numargs = gluetree->size;
+        cgcopyarg(n->id, reg, gluetree->size);
 
         genfreeregs();
         gluetree = gluetree->left;

@@ -71,6 +71,7 @@ enum
     T_LBRACKET,
     T_RBRACKET,
     T_COMMA,
+    T_ELLIPSIS, // `...`
     // #endregion
 };
 
@@ -208,12 +209,14 @@ struct symtable
     {
         /// @brief For locals, either the negative offset from the stack base pointer or register id
         int posn;
-        /// @brief For functions, number of params.
+        /// @brief For functions, number of params. For variadic functions, number of fixed params.
         /// For structs, number of fields
         int nelems;
     };
     /// @brief For S_FUNCTIONs, indicating this function is implemented or not
     int isimplemented;
+    /// @brief For S_FUNCTIONs, indicating this function is variadic function or not
+    int is_variadic;
 };
 
 #endif
