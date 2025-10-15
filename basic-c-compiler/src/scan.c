@@ -371,12 +371,24 @@ int scan(struct token *t)
         if (next() != '\'')
             fatal("Expected '\\'' at end of char literal");
         break;
+    case '.':
+        if ((c = next()) == '.')
+        {
+            if ((c = next()) == '.')
+                t->token = T_ELLIPSIS;
+            else
+                fatal("Expected '.'");
+        }
+        else
+            fatal("Expected '.'");
+        break;
     case '"':
         // Scan in a literal string
         scanstr(Text);
         t->token = T_STRLIT;
         break;
     default:
+    {
         // If it's a digit, scan the
         // literal integer value in
         if (isdigit(c))
@@ -405,6 +417,7 @@ int scan(struct token *t)
         // The character isn't part of any recognised token, error
         printf("Unrecognised character %c on line %d\n", c, Line);
         exit(EXIT_FAILURE);
+    }
     }
 
     // We found a token

@@ -74,7 +74,8 @@ static void updatesym(int slot,
                       int class,
                       int size,
                       int posn,
-                      int isimplemented)
+                      int isimplemented,
+                      int is_variadic)
 {
     if (slot < 0 || slot >= NSYMBOLS)
         fatal("Invalid symbol slot number in updatesym()");
@@ -86,6 +87,7 @@ static void updatesym(int slot,
     Symtable[slot].size = size;
     Symtable[slot].posn = posn;
     Symtable[slot].isimplemented = isimplemented;
+    Symtable[slot].is_variadic = is_variadic;
 }
 
 /// @brief Add a global symbol to the symbol table. Set up its:
@@ -107,7 +109,7 @@ int addglob(char *name,
 
     // Otherwise get a new slot and fill it in
     slot = newglob();
-    updatesym(slot, name, type, stype, class, size, 0, 0);
+    updatesym(slot, name, type, stype, class, size, 0, 0, 0);
     // Generate the assembly for the symbol if it's global
     if (class == C_GLOBAL)
         genglobsym(slot);
@@ -136,7 +138,7 @@ int addlocl(char *name,
     // Otherwise get a new symbol slot and a position for this local.
     // Update the local symbol table entry.
     localslot = newlocl();
-    updatesym(localslot, name, type, stype, class, size, 0, 0);
+    updatesym(localslot, name, type, stype, class, size, 0, 0, 0);
 
     // Return the local symbol's slot
     return localslot;

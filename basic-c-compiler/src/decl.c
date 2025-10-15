@@ -116,7 +116,7 @@ static int param_declaration(int id)
         orig_paramcnt = Symtable[id].nelems;
 
     // Loop until the final right parentheses
-    while (Token.token != T_RPAREN)
+    while (Token.token != T_RPAREN && Token.token != T_ELLIPSIS)
     {
         // Get the type and identifier
         // and add it to the symbol table
@@ -188,6 +188,11 @@ struct ASTnode *function_declaration(int type)
     // Pass in any existing function prototype symbol slot number
     lparen();
     paramcnt = param_declaration(id);
+    if (Token.token == T_ELLIPSIS)
+    {
+        scan(&Token);
+        Symtable[nameslot].is_variadic = 1;
+    }
     rparen();
 
     // If this is a new function declaration, update the

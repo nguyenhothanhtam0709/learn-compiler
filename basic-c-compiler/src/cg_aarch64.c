@@ -834,8 +834,10 @@ static void cg8bytesstackalloc(int slot)
 }
 
 /// @brief Stack alloc for additional arguments for function calling
-void cgargsstackalloc(int numargs)
+void cgargsstackalloc(int funcid, int numargs)
 {
+    if (Symtable[funcid].is_variadic && numargs > Symtable[funcid].nelems)
+        cg8bytesstackalloc(numargs - Symtable[funcid].nelems);
     if (numargs > MAX_ARGS_IN_REG)
         cg8bytesstackalloc(numargs - MAX_ARGS_IN_REG);
 }
@@ -851,7 +853,8 @@ int cgcall(int id, int numargs)
     // Call the function
     fprintf(Outfile, "\tbl\t_%s\n", Symtable[id].name);
     // Remove any arguments pushed on the stack
-    if (numargs > MAX_ARGS_IN_REG)
+    if (numargs > MAX_ARGS_IN_REG ||
+        (Symtable[id].is_variadic && numargs > Symtable[id].nelems))
     {
         const int stackOffsetBeforeCall = (localOffset + 15) & ~15;
         const int deallocateOffset = stackOffset - stackOffsetBeforeCall;
@@ -870,12 +873,20 @@ int cgcall(int id, int numargs)
 /// copy this argument into the argposn'th
 /// parameter in preparation for a future function
 /// call. Note that argposn is 1, 2, 3, 4, ..., never zero.
-void cgcopyarg(int r, int argposn)
+void cgcopyarg(int funcid, int r, int argposn)
 {
-    // If this is above the sixth argument, simply push the
+    if (Symtable[funcid].is_variadic &&
+        argposn > Symtable[funcid].nelems)
+    {
+        const int offset = (argposn - Symtable[funcid].nelems - 1) * 8;
+        fprintf(Outfile,
+                "\tstr\t%s, [sp, #%d]\n",
+                reglist[r], offset);
+    }
+    // If this is above the 8th argument, simply push the
     // register on the stack. We rely on being called with
     // successive arguments in the correct order for x86-64
-    if (argposn > MAX_ARGS_IN_REG)
+    else if (argposn > MAX_ARGS_IN_REG)
     {
         const int offset = (argposn - MAX_ARGS_IN_REG - 1) * 8;
         fprintf(Outfile,

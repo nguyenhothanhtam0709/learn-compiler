@@ -577,7 +577,7 @@ int cgboolean(int r, int op, int label)
     return r;
 }
 
-void cgargsstackalloc(int numargs)
+void cgargsstackalloc(int funcid, int numargs)
 {
     // Do nothing
 }
@@ -613,7 +613,7 @@ int cgcall(int id, int numargs)
 /// copy this argument into the argposn'th
 /// parameter in preparation for a future function
 /// call. Note that argposn is 1, 2, 3, 4, ..., never zero.
-void cgcopyarg(int r, int argposn)
+void cgcopyarg(int funcid, int r, int argposn)
 {
     // If this is above the sixth argument, simply push the
     // register on the stack. We rely on being called with
