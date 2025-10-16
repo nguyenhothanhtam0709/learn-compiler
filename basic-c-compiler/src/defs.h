@@ -56,6 +56,7 @@ enum
     T_WHILE,  // `while`
     T_FOR,    // `for`
     T_RETURN, // `return`
+    T_STRUCT, // `struct`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -133,6 +134,7 @@ enum
     P_CHAR = 32,
     P_INT = 48,
     P_LONG = 64,
+    P_STRUCT = 80,
 };
 
 /// @brief Structural types
@@ -149,6 +151,8 @@ enum
     C_GLOBAL = 1, // Globally visible symbol
     C_LOCAL,      // Locally visible symbol
     C_PARAM,      // Locally visible function parameter
+    C_STRUCT,     // A struct
+    C_MEMBER,     // Member of a struct or union
 };
 
 /// @brief Symbol table entry structure
@@ -158,6 +162,8 @@ struct symtable
     char *name;
     /// @brief Primitive type for the symbol
     int type;
+    /// @brief If struct/union, ptr to that type
+    struct symtable *ctype;
     /// @brief Structural type for the symbol
     int stype;
     /// @brief Storage class for the symbol
