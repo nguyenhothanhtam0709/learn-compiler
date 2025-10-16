@@ -266,6 +266,8 @@ int scan(struct token *t)
     case '-':
         if ((c = next()) == '-')
             t->token = T_DEC;
+        else if (c == '>')
+            t->token = T_ARROW;
         else
         {
             putback(c);
@@ -307,6 +309,20 @@ int scan(struct token *t)
         break;
     case '^':
         t->token = T_XOR;
+        break;
+    case '.':
+        if ((c = next()) == '.')
+        {
+            if ((c = next()) == '.')
+                t->token = T_ELLIPSIS;
+            else
+                fatal("Expected '.'");
+        }
+        else
+        {
+            putback(c);
+            t->token = T_DOT;
+        }
         break;
     case '=':
         if ((c = next()) == '=')
@@ -374,17 +390,6 @@ int scan(struct token *t)
         t->token = T_INTLIT;
         if (next() != '\'')
             fatal("Expected '\\'' at end of char literal");
-        break;
-    case '.':
-        if ((c = next()) == '.')
-        {
-            if ((c = next()) == '.')
-                t->token = T_ELLIPSIS;
-            else
-                fatal("Expected '.'");
-        }
-        else
-            fatal("Expected '.'");
         break;
     case '"':
         // Scan in a literal string

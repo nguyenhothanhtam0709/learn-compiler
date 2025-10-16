@@ -70,6 +70,8 @@ enum
     T_LBRACKET,
     T_RBRACKET,
     T_COMMA,
+    T_DOT,
+    T_ARROW,    // `->`
     T_ELLIPSIS, // `...`
     // #endregion
 };
