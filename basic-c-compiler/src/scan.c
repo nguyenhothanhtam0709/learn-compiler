@@ -152,6 +152,8 @@ static int keyword(char *s)
     case 'e':
         if (!strcmp(s, "else"))
             return T_ELSE;
+        if (!strcmp(s, "enum"))
+            return T_ENUM;
         break;
     case 'f':
         if (!strcmp(s, "for"))
@@ -171,13 +173,23 @@ static int keyword(char *s)
         if (!strcmp(s, "return"))
             return T_RETURN;
         break;
-    case 'w':
-        if (!strcmp(s, "while"))
-            return T_WHILE;
+    case 's':
+        if (!strcmp(s, "struct"))
+            return T_STRUCT;
         break;
+    case 't':
+        if (!strcmp(s, "typedef"))
+            return T_TYPEDEF;
+    case 'u':
+        if (!strcmp(s, "union"))
+            return T_UNION;
     case 'v':
         if (!strcmp(s, "void"))
             return T_VOID;
+        break;
+    case 'w':
+        if (!strcmp(s, "while"))
+            return T_WHILE;
         break;
     }
 
@@ -262,6 +274,8 @@ int scan(struct token *t)
     case '-':
         if ((c = next()) == '-')
             t->token = T_DEC;
+        else if (c == '>')
+            t->token = T_ARROW;
         else
         {
             putback(c);
@@ -303,6 +317,20 @@ int scan(struct token *t)
         break;
     case '^':
         t->token = T_XOR;
+        break;
+    case '.':
+        if ((c = next()) == '.')
+        {
+            if ((c = next()) == '.')
+                t->token = T_ELLIPSIS;
+            else
+                fatal("Expected '.'");
+        }
+        else
+        {
+            putback(c);
+            t->token = T_DOT;
+        }
         break;
     case '=':
         if ((c = next()) == '=')
@@ -370,17 +398,6 @@ int scan(struct token *t)
         t->token = T_INTLIT;
         if (next() != '\'')
             fatal("Expected '\\'' at end of char literal");
-        break;
-    case '.':
-        if ((c = next()) == '.')
-        {
-            if ((c = next()) == '.')
-                t->token = T_ELLIPSIS;
-            else
-                fatal("Expected '.'");
-        }
-        else
-            fatal("Expected '.'");
         break;
     case '"':
         // Scan in a literal string

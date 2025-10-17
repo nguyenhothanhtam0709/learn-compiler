@@ -28,6 +28,15 @@ int pointer_to(int type)
     return (type + 1);
 }
 
+/// @brief Given a type and a composite type pointer, return
+/// the size of this type in bytes
+int typesize(int type, struct symtable *ctype)
+{
+    if (type == P_STRUCT || type == P_UNION)
+        return ctype->size;
+    return genprimsize(type);
+}
+
 /// @brief Given a primitive pointer type, return
 /// the type which it points to
 int value_at(int type)
@@ -50,6 +59,12 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
 
     ltype = tree->type;
 
+    // XXX No idea on these yet
+    if (ltype == P_STRUCT || ltype == P_UNION)
+        fatal("Don't know how to do this yet");
+    if (rtype == P_STRUCT || rtype == P_UNION)
+        fatal("Don't know how to do this yet");
+
     // Compare scalar int types
     if (inttype(ltype) && inttype(rtype))
     {
@@ -58,8 +73,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op)
             return tree;
 
         // Get the sizes for each type
-        lsize = genprimsize(ltype);
-        rsize = genprimsize(rtype);
+        lsize = typesize(ltype, NULL); // XXX Fix soon
+        rsize = typesize(rtype, NULL); // XXX Fix soon
 
         // Tree's size is too big
         if (lsize > rsize)

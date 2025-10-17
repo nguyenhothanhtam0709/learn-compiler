@@ -33,8 +33,16 @@ extern_ struct symtable *Globhead, *Globtail;
 extern_ struct symtable *Loclhead, *Locltail;
 /// @brief Local parameters
 extern_ struct symtable *Parmhead, *Parmtail;
-/// @brief Composite types
-extern_ struct symtable *Comphead, *Comptail;
+/// @brief Temp list of struct/union members
+extern_ struct symtable *Membhead, *Membtail;
+/// @brief List of struct types
+extern_ struct symtable *Structhead, *Structtail;
+/// @brief List of union types
+extern_ struct symtable *Unionhead, *Uniontail;
+/// @brief List of enum types and values
+extern_ struct symtable *Enumhead, *Enumtail;
+/// @brief List of typedefs
+extern_ struct symtable *Typehead, *Typetail;
 // #endregion
 
 // #region Command-line flags

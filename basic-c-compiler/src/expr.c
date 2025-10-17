@@ -117,6 +117,62 @@ static struct ASTnode *array_access(void)
     return left;
 }
 
+/// @brief Parse the member reference of a struct or union
+/// and return an AST tree for it. If withpointer is true,
+/// the access is through a pointer to the member.
+static struct ASTnode *member_access(int withpointer)
+{
+    struct ASTnode *left = NULL,
+                   *right = NULL;
+    struct symtable *compvar = NULL,
+                    *typeptr = NULL,
+                    *m = NULL;
+
+    // Check that the identifier has been declared as a
+    // struct/union or a struct/union pointer
+    if ((compvar = findsymbol(Text)) == NULL)
+        fatals("Undeclared variable", Text);
+    if (withpointer && compvar->type != pointer_to(P_STRUCT) && compvar->type != pointer_to(P_UNION))
+        fatals("Undeclared variable", Text);
+    if (!withpointer && compvar->type != P_STRUCT && compvar->type != P_UNION)
+        fatals("Undeclared variable", Text);
+
+    // If a pointer to a struct/union, get the pointer's value.
+    // Otherwise, make a leaf node that points at the base
+    // Either way, it's an rvalue
+    if (withpointer)
+        left = mkastleaf(A_IDENT, pointer_to(compvar->type), compvar, 0);
+    else
+        left = mkastleaf(A_ADDR, compvar->type, compvar, 0);
+    left->rvalue = 1;
+
+    // Get the details of the composite type
+    typeptr = compvar->ctype;
+
+    // Skip the '.' or '->' token and get the member's name
+    scan(&Token);
+    ident();
+
+    // Find the matching member's name in the type
+    // Die if we can't find it
+    for (m = typeptr->member; m != NULL; m = m->next)
+        if (!strcmp(m->name, Text))
+            break;
+
+    if (m == NULL)
+        fatals("No member found in struct/union: ", Text);
+
+    // Build an A_INTLIT node with the offset
+    right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+
+    // Add the member's offset to the base of the struct/union
+    // and dereference it. Still an lvalue at this point
+    left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
+    left = mkastunary(A_DEREF, m->type, left, NULL, 0);
+
+    return left;
+}
+
 /// @brief Parse a postfix expression and return
 /// an AST node representing it. The
 /// identifier is already in Text.
@@ -124,6 +180,15 @@ static struct ASTnode *postfix(void)
 {
     struct ASTnode *n;
     struct symtable *varptr;
+    struct symtable *enumptr;
+
+    // If the identifier matches an enum value,
+    // return an A_INTLIT node
+    if ((enumptr = findenumval(Text)) != NULL)
+    {
+        scan(&Token);
+        return mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn);
+    }
 
     // Scan in the next token to see if we have a postfix expression
     scan(&Token);
@@ -135,6 +200,12 @@ static struct ASTnode *postfix(void)
     // An array reference
     if (Token.token == T_LBRACKET)
         return array_access();
+
+    // Access into a struct or union
+    if (Token.token == T_DOT)
+        return member_access(0);
+    if (Token.token == T_ARROW)
+        return member_access(1);
 
     // A variable. Check that the variable exists.
     if ((varptr = findsymbol(Text)) == NULL || varptr->stype != S_VARIABLE)

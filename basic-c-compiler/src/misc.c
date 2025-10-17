@@ -56,6 +56,12 @@ void ident(void)
     match(T_IDENT, "identifier");
 }
 
+/// @brief Match a comma and fetch the next token
+void comma(void)
+{
+    match(T_COMMA, "comma");
+}
+
 /// @brief Print out fatal messages
 void fatal(char *s)
 {
