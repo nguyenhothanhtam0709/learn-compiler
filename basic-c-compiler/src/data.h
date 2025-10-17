@@ -39,6 +39,10 @@ extern_ struct symtable *Membhead, *Membtail;
 extern_ struct symtable *Structhead, *Structtail;
 /// @brief List of union types
 extern_ struct symtable *Unionhead, *Uniontail;
+/// @brief List of enum types and values
+extern_ struct symtable *Enumhead, *Enumtail;
+/// @brief List of typedefs
+extern_ struct symtable *Typehead, *Typetail;
 // #endregion
 
 // #region Command-line flags

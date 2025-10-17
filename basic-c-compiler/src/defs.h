@@ -51,13 +51,15 @@ enum
     T_LONG, // `long`
     // #endregion
     // #region Other keywords
-    T_IF,     // `if`
-    T_ELSE,   // `else`
-    T_WHILE,  // `while`
-    T_FOR,    // `for`
-    T_RETURN, // `return`
-    T_STRUCT, // `struct`
-    T_UNION,  // `union`
+    T_IF,      // `if`
+    T_ELSE,    // `else`
+    T_WHILE,   // `while`
+    T_FOR,     // `for`
+    T_RETURN,  // `return`
+    T_STRUCT,  // `struct`
+    T_UNION,   // `union`
+    T_ENUM,    // `enum`
+    T_TYPEDEF, // `typedef`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -158,6 +160,9 @@ enum
     C_STRUCT,     // A struct
     C_UNION,      // A union
     C_MEMBER,     // Member of a struct or union
+    C_ENUMTYPE,   // A named enumeration type
+    C_ENUMVAL,    // A named enumeration value
+    C_TYPEDEF,    // A named typedef
 };
 
 /// @brief Symbol table entry structure
