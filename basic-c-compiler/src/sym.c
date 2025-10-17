@@ -106,6 +106,15 @@ struct symtable *addstruct(char *name, int type, struct symtable *ctype,
     return sym;
 }
 
+/// @brief Add a struct to the union list
+struct symtable *addunion(char *name, int type, struct symtable *ctype,
+                          int stype, int size)
+{
+    struct symtable *sym = newsym(name, type, ctype, stype, C_UNION, size, 0);
+    appendsym(&Unionhead, &Uniontail, sym);
+    return sym;
+}
+
 /// @brief Search for a symbol in a specific list.
 /// Return a pointer to the found node or NULL if not found.
 static struct symtable *findsyminlist(char *s, struct symtable *list)
@@ -173,6 +182,13 @@ struct symtable *findstruct(char *s)
     return findsyminlist(s, Structhead);
 }
 
+/// @brief Find a struct in the union list
+/// Return a pointer to the found node or NULL if not found.
+struct symtable *findunion(char *s)
+{
+    return findsyminlist(s, Unionhead);
+}
+
 /// @brief Reset the contents of the symbol table
 void clear_symtable(void)
 {
@@ -181,6 +197,7 @@ void clear_symtable(void)
     Parmhead = Parmtail = NULL;
     Membhead = Membtail = NULL;
     Structhead = Structtail = NULL;
+    Unionhead = Uniontail = NULL;
 }
 
 /// @brief Clear all the entries in the local symbol table

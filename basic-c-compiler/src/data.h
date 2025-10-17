@@ -37,6 +37,8 @@ extern_ struct symtable *Parmhead, *Parmtail;
 extern_ struct symtable *Membhead, *Membtail;
 /// @brief List of struct types
 extern_ struct symtable *Structhead, *Structtail;
+/// @brief List of union types
+extern_ struct symtable *Unionhead, *Uniontail;
 // #endregion
 
 // #region Command-line flags
