@@ -1,4 +1,4 @@
-int printf(char *fmt);
+int printf(char *fmt, ...);
 
 union fred {
   char w;

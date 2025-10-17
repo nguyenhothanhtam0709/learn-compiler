@@ -1,4 +1,4 @@
-int printf(char *fmt);
+int printf(char *fmt, ...);
 
 enum fred { apple=1, banana, carrot, pear=10, peach, mango, papaya };
 enum jane { aple=1, bnana, crrot, par=10, pech, mago, paaya };

@@ -1,4 +1,4 @@
-int printf(char *fmt);
+int printf(char *fmt, ...);
 
 typedef int FOO;
 FOO var1;
