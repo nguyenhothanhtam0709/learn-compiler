@@ -3,7 +3,7 @@
 
 #include "compat.h"
 
-#if !__has_builtin(strdup)
+#if !_HAVE_STRDUP_
 /// @brief An implementation of [strdup](https://en.cppreference.com/w/c/experimental/dynamic/strdup).
 /// For C23 and above, please use strdup from string.h
 char *strdup(const char *c)

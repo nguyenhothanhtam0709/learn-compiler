@@ -3,7 +3,19 @@
 
 #include <string.h>
 
-#if !__has_builtin(strdup)
+#ifdef _POSIX_C_SOURCE
+#if _POSIX_C_SOURCE >= 200809L
+#define _HAVE_STRDUP_ 1
+#endif
+#endif
+
+#ifndef _HAVE_STRDUP_
+#if defined(__APPLE__) || defined(__linux__)
+#define _HAVE_STRDUP_ 1
+#endif
+#endif
+
+#if !_HAVE_STRDUP_
 char *strdup(const char *c);
 #endif
 
