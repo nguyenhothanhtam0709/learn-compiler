@@ -9,10 +9,8 @@
 #endif
 #endif
 
-#ifndef _HAVE_STRDUP_
-#if defined(__APPLE__) || defined(__linux__)
+#ifdef __APPLE__ /* Specific functions of MacOS */
 #define _HAVE_STRDUP_ 1
-#endif
 #endif
 
 #if !_HAVE_STRDUP_
