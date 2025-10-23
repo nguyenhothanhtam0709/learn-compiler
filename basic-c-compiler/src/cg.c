@@ -35,6 +35,58 @@ void cgdataseg()
     }
 }
 
+/// @brief Given a P_XXX type value, return the
+/// size of a primitive type in bytes.
+int cgprimsize(int type)
+{
+    if (ptrtype(type))
+        return 8;
+
+    switch (type)
+    {
+    case P_CHAR:
+        return 1;
+    case P_INT:
+        return 4;
+    case P_LONG:
+        return 8;
+    default:
+        fatald("Bad type in cgprimsize:", type);
+    }
+    return 0; // Keep -Wall happy
+}
+
+/// @brief Given a scalar type, an existing memory offset
+/// (which hasn't been allocated to anything yet)
+/// and a direction (1 is up, -1 is down), calculate
+/// and return a suitably aligned memory offset
+/// for this scalar type. This could be the original
+/// offset, or it could be above/below the original
+int cgalign(int type, int offset, int direction)
+{
+    int alignment;
+
+    // We don't need to do this on x86-64, but let's
+    // align chars on any offset and align ints/pointers
+    // on a 4-byte alignment
+    switch (type)
+    {
+    case P_CHAR:
+        return (offset);
+    case P_INT:
+    case P_LONG:
+        break;
+    default:
+        fatald("Bad type in calc_aligned_offset:", type);
+    }
+
+    // Here we have an int or a long. Align it on a 4-byte offset
+    // I put the generic code here so it can be reused elsewhere.
+    alignment = 4;
+    offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
+    return offset;
+}
+
 /// @brief Maximum amount of arguments can be
 /// passed in register for function call.
 /// The remaining must be pushed into stack.
@@ -702,36 +754,17 @@ int cgstorlocal(int r, struct symtable *sym)
     return r;
 }
 
-/// @brief Given a P_XXX type value, return the
-/// size of a primitive type in bytes.
-int cgprimsize(int type)
-{
-    if (ptrtype(type))
-        return 8;
-
-    switch (type)
-    {
-    case P_CHAR:
-        return 1;
-    case P_INT:
-        return 4;
-    case P_LONG:
-        return 8;
-    default:
-        fatald("Bad type in cgprimsize:", type);
-    }
-    return 0; // Keep -Wall happy
-}
-
 /// @brief Generate a global symbol but not functions
 void cgglobsym(struct symtable *node)
 {
+    if (node == NULL)
+        return;
     if (node->stype == S_FUNCTION)
         return;
 
     // Get the size of the type
     int type = node->type;
-    int typesize;
+    int size;
 
     // #region Old way to define global variable
     /// @note
@@ -764,29 +797,30 @@ void cgglobsym(struct symtable *node)
         if (ptrtype(type))
             type = value_at(type);
 
-    typesize = genprimsize(type);
+    size = typesize(type, node->ctype);
 
     // Generate the global identity and the label
     cgdataseg();
     fprintf(Outfile, "\t.globl\t%s\n"
                      "%s:\n",
             node->name, node->name);
-    // Generate the space
-    for (int i = 0; i < node->size; i++)
-        switch (typesize)
-        {
-        case 1:
+    // Generate the space for this type
+    // Generate the space for this type
+    switch (size)
+    {
+    case 1:
+        fprintf(Outfile, "\t.byte\t0\n");
+        break;
+    case 4:
+        fprintf(Outfile, "\t.long\t0\n");
+        break;
+    case 8:
+        fprintf(Outfile, "\t.quad\t0\n");
+        break;
+    default:
+        for (int i = 0; i < size; i++)
             fprintf(Outfile, "\t.byte\t0\n");
-            break;
-        case 4:
-            fprintf(Outfile, "\t.long\t0\n");
-            break;
-        case 8:
-            fprintf(Outfile, "\t.quad\t0\n");
-            break;
-        default:
-            fatald("Unknown typesize in cgglobsym: ", typesize);
-        }
+    }
 }
 
 /// @brief Generate a global string and its start label

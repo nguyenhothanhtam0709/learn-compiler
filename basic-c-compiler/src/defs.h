@@ -51,11 +51,15 @@ enum
     T_LONG, // `long`
     // #endregion
     // #region Other keywords
-    T_IF,     // `if`
-    T_ELSE,   // `else`
-    T_WHILE,  // `while`
-    T_FOR,    // `for`
-    T_RETURN, // `return`
+    T_IF,      // `if`
+    T_ELSE,    // `else`
+    T_WHILE,   // `while`
+    T_FOR,     // `for`
+    T_RETURN,  // `return`
+    T_STRUCT,  // `struct`
+    T_UNION,   // `union`
+    T_ENUM,    // `enum`
+    T_TYPEDEF, // `typedef`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -69,6 +73,8 @@ enum
     T_LBRACKET,
     T_RBRACKET,
     T_COMMA,
+    T_DOT,
+    T_ARROW,    // `->`
     T_ELLIPSIS, // `...`
     // #endregion
 };
@@ -133,6 +139,8 @@ enum
     P_CHAR = 32,
     P_INT = 48,
     P_LONG = 64,
+    P_STRUCT = 80,
+    P_UNION = 96,
 };
 
 /// @brief Structural types
@@ -149,6 +157,12 @@ enum
     C_GLOBAL = 1, // Globally visible symbol
     C_LOCAL,      // Locally visible symbol
     C_PARAM,      // Locally visible function parameter
+    C_STRUCT,     // A struct
+    C_UNION,      // A union
+    C_MEMBER,     // Member of a struct or union
+    C_ENUMTYPE,   // A named enumeration type
+    C_ENUMVAL,    // A named enumeration value
+    C_TYPEDEF,    // A named typedef
 };
 
 /// @brief Symbol table entry structure
@@ -158,6 +172,8 @@ struct symtable
     char *name;
     /// @brief Primitive type for the symbol
     int type;
+    /// @brief If struct/union, ptr to that type
+    struct symtable *ctype;
     /// @brief Structural type for the symbol
     int stype;
     /// @brief Storage class for the symbol
