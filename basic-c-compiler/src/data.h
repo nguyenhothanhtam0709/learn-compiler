@@ -19,6 +19,8 @@ extern_ struct symtable *Functionid;
 extern_ FILE *Infile;
 /// @brief Output file
 extern_ FILE *Outfile;
+/// @brief Name of file we are parsing
+extern_ char *Infilename;
 /// @brief Name of file we opened as Outfile
 extern_ char *Outfilename;
 /// @brief token scanned

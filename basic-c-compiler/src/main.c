@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "defs.h"
 #define extern_
@@ -42,18 +44,26 @@ char *alter_suffix(char *str, char suffix)
 /// down to assembly code. Return the new file's name
 static char *do_compile(char *filename)
 {
+    char cmd[TEXTLEN];
+
+    // Change the input file's suffix to .s
     Outfilename = alter_suffix(filename, 's');
     if (Outfilename == NULL)
     {
         fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
         exit(EXIT_FAILURE);
     }
-    // Open up the input file
-    if ((Infile = fopen(filename, "r")) == NULL)
+    // Generate the pre-processor command
+    snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+
+    // Open up the pre-processor pipe
+    if ((Infile = popen(cmd, "r")) == NULL)
     {
         fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
+    Infilename = filename;
+
     // Create the output file
     if ((Outfile = fopen(Outfilename, "w")) == NULL)
     {
