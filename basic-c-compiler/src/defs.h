@@ -9,9 +9,11 @@
 #if defined(__APPLE__) && defined(__MACH__)
 #define ASCMD "/usr/bin/as -o "
 #define LDCMD "/usr/bin/clang -o "
+#define CPPCMD "/usr/bin/clang -E -nostdinc -isystem "
 #else
 #define ASCMD "as -o "
 #define LDCMD "gcc --no-pie -o "
+#define CPPCMD "cpp -nostdinc -isystem "
 #endif
 
 /// @brief Tokens
@@ -60,6 +62,7 @@ enum
     T_UNION,   // `union`
     T_ENUM,    // `enum`
     T_TYPEDEF, // `typedef`
+    T_EXTERN,  // `extern`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -157,6 +160,7 @@ enum
     C_GLOBAL = 1, // Globally visible symbol
     C_LOCAL,      // Locally visible symbol
     C_PARAM,      // Locally visible function parameter
+    C_EXTERN,     // External globally visible symbol
     C_STRUCT,     // A struct
     C_UNION,      // A union
     C_MEMBER,     // Member of a struct or union

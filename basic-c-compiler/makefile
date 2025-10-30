@@ -1,5 +1,10 @@
+# Define the location of the include directory
+# and the location to install the compiler binary
+INCDIR=/tmp/include
+BINDIR=/tmp
+
 CC = clang
-CFLAGS = -std=c17 -Wall -Wextra -O2 -lm
+CFLAGS = -std=c17 -Wall -Wextra -O2 -lm -DINCDIR=\"$(INCDIR)\"
 
 # Project settings
 X86_64_TARGET	= x86_64
@@ -23,6 +28,12 @@ $(X86_64_TARGET): $(X86_64_OBJ)
 
 $(AARCH64_TARGET): $(AARCH64_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
+
+install: # cwj
+	mkdir -p $(INCDIR)
+	rsync -a include/. $(INCDIR)
+# 	cp cwj $(BINDIR)
+# 	chmod +x $(BINDIR)/cwj
 
 # Compile .c to .o
 %.o: %.c
