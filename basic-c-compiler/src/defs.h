@@ -9,11 +9,12 @@
 #if defined(__APPLE__) && defined(__MACH__)
 #define ASCMD "/usr/bin/as -o "
 #define LDCMD "/usr/bin/clang -o "
+#define CPPCMD "/usr/bin/clang -E -nostdinc -isystem "
 #else
 #define ASCMD "as -o "
 #define LDCMD "gcc --no-pie -o "
-#endif
 #define CPPCMD "cpp -nostdinc -isystem "
+#endif
 
 /// @brief Tokens
 enum
