@@ -24,7 +24,7 @@ enum
     T_LOGAND, // `&&`
     T_OR,     // `|`
     T_XOR,    // `^`
-    T_AMPER,
+    T_AMPER,  // `&`
     T_EQ,     // `==`
     T_NE,     // `!=`
     T_LT,     // `<`
