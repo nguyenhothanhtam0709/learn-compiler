@@ -27,6 +27,8 @@ extern_ char *Outfilename;
 extern_ struct token Token;
 /// @brief Last identifier scanned
 extern_ char Text[TEXTLEN + 1];
+/// @brief Depth of nested loops
+extern_ int Looplevel;
 
 // #region Symbol table lists
 /// @brief Global variables and functions

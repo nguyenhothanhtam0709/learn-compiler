@@ -53,16 +53,18 @@ enum
     T_LONG, // `long`
     // #endregion
     // #region Other keywords
-    T_IF,      // `if`
-    T_ELSE,    // `else`
-    T_WHILE,   // `while`
-    T_FOR,     // `for`
-    T_RETURN,  // `return`
-    T_STRUCT,  // `struct`
-    T_UNION,   // `union`
-    T_ENUM,    // `enum`
-    T_TYPEDEF, // `typedef`
-    T_EXTERN,  // `extern`
+    T_IF,       // `if`
+    T_ELSE,     // `else`
+    T_WHILE,    // `while`
+    T_FOR,      // `for`
+    T_RETURN,   // `return`
+    T_STRUCT,   // `struct`
+    T_UNION,    // `union`
+    T_ENUM,     // `enum`
+    T_TYPEDEF,  // `typedef`
+    T_EXTERN,   // `extern`
+    T_BREAK,    // `break`
+    T_CONTINUE, // `continue`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -129,7 +131,9 @@ enum
     A_NEGATE,
     A_INVERT,
     A_LOGNOT,
-    A_TOBOOL
+    A_TOBOOL,
+    A_BREAK,
+    A_CONTINUE
 };
 
 /// @brief Primitive type. The bottom 4 bits is an integer

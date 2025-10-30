@@ -41,7 +41,8 @@ int typesize(int type, struct symtable *ctype);
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
 
 int genlabel(void);
-int genAST(struct ASTnode *n, int reg, int parentASTop);
+int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
+           int loopendlabel, int parentASTop);
 void genpreamble();
 void genpostamble();
 void genfreeregs();
