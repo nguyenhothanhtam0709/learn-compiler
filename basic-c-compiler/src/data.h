@@ -29,6 +29,8 @@ extern_ struct token Token;
 extern_ char Text[TEXTLEN + 1];
 /// @brief Depth of nested loops
 extern_ int Looplevel;
+/// @brief Depth of nested switches
+extern_ int Switchlevel;
 
 // #region Symbol table lists
 /// @brief Global variables and functions

@@ -65,6 +65,9 @@ enum
     T_EXTERN,   // `extern`
     T_BREAK,    // `break`
     T_CONTINUE, // `continue`
+    T_SWITCH,   // `switch`
+    T_CASE,     // `case`
+    T_DEFAULT,  // `default`
     // #endregion
     // #region Structural tokens
     T_INTLIT, // Integer literal
@@ -81,6 +84,7 @@ enum
     T_DOT,
     T_ARROW,    // `->`
     T_ELLIPSIS, // `...`
+    T_COLON,
     // #endregion
 };
 
@@ -133,7 +137,10 @@ enum
     A_LOGNOT,
     A_TOBOOL,
     A_BREAK,
-    A_CONTINUE
+    A_CONTINUE,
+    A_SWITCH,
+    A_CASE,
+    A_DEFAULT
 };
 
 /// @brief Primitive type. The bottom 4 bits is an integer
